@@ -31,7 +31,8 @@ export function storeOTP(email: string, otp: string): void {
 }
 
 export function verifyOTP(email: string, otp: string): { success: boolean; message: string } {
-  const record = otpStore.get(email.toLowerCase())
+  email = email.toLowerCase()
+  const record = otpStore.get(email)
 
   if (!record) {
     return { success: false, message: "No OTP found. Please request a new one." }
@@ -47,7 +48,7 @@ export function verifyOTP(email: string, otp: string): { success: boolean; messa
     return { success: false, message: "OTP has expired. Please request a new one." }
   }
 
-  if (record.otp !== otp) {
+  if (record.otp !== otp.toString()) {
     record.attempts++
     return { success: false, message: "Invalid OTP. Please try again." }
   }
