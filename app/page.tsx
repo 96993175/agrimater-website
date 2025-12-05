@@ -881,7 +881,7 @@ function FeaturesSection({
               className="rounded-3xl overflow-hidden inline-block"
             >
               <img
-                src="/ALLINONE.png"
+                src="/allinone.png"
                 alt="Features Overview"
                 className="w-auto h-auto max-w-full"
               />
