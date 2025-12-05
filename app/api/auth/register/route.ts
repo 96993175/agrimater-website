@@ -23,16 +23,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Password must be at least 8 characters long" }, { status: 400 })
     }
 
-    // Check if user already exists
-    const existingUser = db.users.findByEmail(email)
+    // Check if user already exists (await the async lookup)
+    const normalizedEmail = email.toLowerCase()
+    const existingUser = await db.users.findByEmail(normalizedEmail)
     if (existingUser) {
       return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 })
     }
 
-    // Create user
-    const user = db.users.create({
+    // Create user (OTP verification is handled before this endpoint is called)
+    const user = await db.users.create({
       name,
-      email,
+      email: normalizedEmail,
       password: hashPassword(password),
       userType: userType || "farmer",
     })

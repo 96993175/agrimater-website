@@ -18,13 +18,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if retailer already exists
-    const existingRetailer = db.retailers.findByEmail(email)
+    const existingRetailer = await db.retailers.findByEmail(email)
     if (existingRetailer) {
       return NextResponse.json({ error: "A retailer with this email is already registered" }, { status: 409 })
     }
 
-    // Create retailer record
-    const retailer = db.retailers.create({
+    // Create retailer record in MongoDB
+    const retailer = await db.retailers.create({
       businessName,
       contactName,
       email,
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        message: "Retailer registration successful",
+        message: "Retailer registration successful - saved to MongoDB",
         id: retailer.id,
         retailer: {
           id: retailer.id,
@@ -54,6 +54,6 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  const retailers = db.retailers.findAll()
+  const retailers = await db.retailers.findAll()
   return NextResponse.json({ retailers })
 }

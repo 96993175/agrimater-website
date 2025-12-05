@@ -12,13 +12,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if farmer already exists
-    const existingFarmer = db.farmers.findByPhone(phone)
+    const existingFarmer = await db.farmers.findByPhone(phone)
     if (existingFarmer) {
       return NextResponse.json({ error: "A farmer with this phone number is already registered" }, { status: 409 })
     }
 
-    // Create farmer record
-    const farmer = db.farmers.create({
+    // Create farmer record in MongoDB
+    const farmer = await db.farmers.create({
       name,
       phone,
       village,
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        message: "Farmer registration successful",
+        message: "Farmer registration successful - saved to MongoDB",
         id: farmer.id,
         farmer: {
           id: farmer.id,

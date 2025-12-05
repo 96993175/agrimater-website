@@ -2,9 +2,13 @@
 
 import type React from "react"
 
-import { useRef, useState, useEffect } from "react"
-import { motion, useScroll, useTransform, useSpring, useInView } from "motion/react"
+import { useRef, useState, useEffect, useCallback } from "react"
+import { AnimatePresence, motion, useScroll, useTransform, useSpring, useInView } from "motion/react"
 import Link from "next/link"
+import Lottie from "lottie-react"
+import rightAnimation from "@/public/Untitled file (1).json"
+import deliveryAnimation from "@/public/Delivery Animation.json"
+import leavesFallingAnimation from "@/public/leaves falling.json"
 
 // Custom Icon Components
 const LeafIcon = ({ className }: { className?: string }) => (
@@ -230,6 +234,35 @@ const SendIcon = ({ className }: { className?: string }) => (
   </svg>
 )
 
+const MailIcon = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect width="20" height="16" x="2" y="4" rx="2" />
+    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+  </svg>
+)
+
+const MessageSquareIcon = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+)
+
 const MenuIcon = ({ className }: { className?: string }) => (
   <svg
     className={className}
@@ -283,9 +316,9 @@ function Navbar() {
         <Link href="/" className="flex items-center gap-3 group">
           <motion.div
             whileHover={{ scale: 1.05, rotate: 5 }}
-            className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#00F28A] to-[#4BE96A] flex items-center justify-center neon-glow-sm"
+            className="w-12 h-12 rounded-2xl overflow-hidden"
           >
-            <LeafIcon className="w-6 h-6 text-black" />
+            <img src="/logo.png" alt="Agrimater Logo" className="w-full h-full object-contain" />
           </motion.div>
           <span className="text-2xl font-bold text-gray-900 tracking-tight">Agrimater</span>
         </Link>
@@ -358,130 +391,291 @@ function Navbar() {
 // Hero Section
 function HeroSection() {
   const ref = useRef<HTMLDivElement>(null)
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] })
-  const y = useSpring(useTransform(scrollYProgress, [0, 1], [0, 300]), { stiffness: 100, damping: 30 })
-  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0])
-  const scale = useTransform(scrollYProgress, [0, 0.5], [1, 0.9])
+  const isInView = useInView(ref, { once: true })
 
   return (
-    <section ref={ref} className="relative min-h-screen flex items-center justify-center overflow-hidden bg-white">
-      <motion.div style={{ y }} className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#00F28A]/10 via-white to-white z-10" />
-        <img
-          src="/cinematic-aerial-view-of-lush-green-smart-farm-at-.jpg"
-          alt="Smart farm"
-          className="absolute inset-0 w-full h-full object-cover opacity-40"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/50 to-white z-10" />
-      </motion.div>
-
-      <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
-        <motion.div
-          animate={{ y: [-20, 20, -20], x: [-10, 10, -10] }}
-          transition={{ duration: 8, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-          className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-gradient-to-br from-[#00F28A]/20 to-transparent blur-3xl"
-        />
-        <motion.div
-          animate={{ y: [20, -20, 20], x: [10, -10, 10] }}
-          transition={{ duration: 10, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-          className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full bg-gradient-to-tl from-[#4BE96A]/15 to-transparent blur-3xl"
-        />
-      </div>
-
-      <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
-        {[...Array(20)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-1 h-1 rounded-full bg-[#00F28A]"
-            style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%` }}
-            animate={{ y: [0, -100, 0], opacity: [0, 1, 0], scale: [0, 1, 0] }}
-            transition={{
-              duration: 4 + Math.random() * 4,
-              repeat: Number.POSITIVE_INFINITY,
-              delay: Math.random() * 4,
-              ease: "easeInOut",
+    <section ref={ref} className="relative min-h-screen flex items-center overflow-hidden bg-white">
+      <div className="relative container mx-auto px-6 lg:px-12">
+        <motion.div 
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: { opacity: 0 },
+            visible: {
+              opacity: 1,
+              transition: {
+                staggerChildren: 0.15,
+                delayChildren: 0.1
+              }
+            }
+          }}
+          className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center min-h-screen py-20"
+        >
+          {/* Left side - Text content */}
+          <motion.div 
+            variants={{
+              hidden: { opacity: 0, y: 30 },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
             }}
-          />
-        ))}
-      </div>
-
-      <motion.div style={{ opacity, scale }} className="relative z-20 container mx-auto px-6 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.8 }}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full glass mb-8 neon-glow-sm"
-        >
-          <SparklesIcon className="w-4 h-4 text-[#00F28A]" />
-          <span className="text-sm font-semibold tracking-wide text-gray-900">AI-Powered Agritech Platform</span>
-        </motion.div>
-
-        <motion.h1
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 1 }}
-          className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-gray-900 mb-8 tracking-tight text-balance leading-[1.1]"
-        >
-          Reimagining Agriculture.
-          <br />
-          <span className="gradient-text neon-text">Empowering Supply Chains.</span>
-        </motion.h1>
-
-        <motion.p
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 1 }}
-          className="text-lg sm:text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto mb-12 text-pretty leading-relaxed"
-        >
-          AI-powered farm-to-retail transparency for Bharat. Verification, grading, and intelligent logistics — all in
-          one platform.
-        </motion.p>
-
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8, duration: 1 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-5"
-        >
-          <Link href="/farmer-onboarding">
-            <motion.button
-              whileHover={{ scale: 1.03, boxShadow: "0 0 50px rgba(0, 242, 138, 0.5)" }}
-              whileTap={{ scale: 0.97 }}
-              className="group px-8 py-4 rounded-full bg-gradient-to-r from-[#00F28A] to-[#4BE96A] text-black font-bold text-lg flex items-center gap-3 neon-glow transition-all duration-300"
-            >
-              Join as a Farmer
-              <ArrowRightIcon className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </motion.button>
-          </Link>
-          <Link href="/retailer-solutions">
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              className="group px-8 py-4 rounded-full glass border-2 border-[#00F28A]/30 hover:border-[#00F28A]/60 text-gray-900 font-bold text-lg flex items-center gap-3 transition-all duration-300"
-            >
-              <PlayIcon className="w-5 h-5" />
-              Explore Solutions
-            </motion.button>
-          </Link>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.2 }}
-          className="absolute bottom-12 left-1/2 -translate-x-1/2"
-        >
-          <motion.div
-            animate={{ y: [0, 12, 0] }}
-            transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-            className="flex flex-col items-center gap-2 text-gray-500"
+            className="flex flex-col justify-center space-y-8"
           >
-            <span className="text-xs font-medium tracking-widest uppercase">Scroll to explore</span>
-            <ChevronDownIcon className="w-5 h-5" />
+            <motion.h1 className="text-[4.084rem] sm:text-[4.765rem] md:text-[5.445rem] font-bold text-gray-900 mb-6 tracking-tight leading-[1.05]">
+              <motion.span
+                initial={{ opacity: 0, x: -100 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2, duration: 0.8, ease: "easeOut" }}
+                className="block"
+              >
+                Reimagining
+              </motion.span>
+              <motion.span
+                initial={{ opacity: 0, x: -100 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.5, duration: 0.8, ease: "easeOut" }}
+                className="block"
+              >
+                Agriculture.
+              </motion.span>
+              <motion.span
+                initial={{ opacity: 0, x: -100 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.8, duration: 0.8, ease: "easeOut" }}
+                className="block bg-gradient-to-r from-[#00F28A] to-[#4BE96A] bg-clip-text text-transparent"
+              >
+                Empowering
+              </motion.span>
+              <motion.span
+                initial={{ opacity: 0, x: -100 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1.1, duration: 0.8, ease: "easeOut" }}
+                className="block bg-gradient-to-r from-[#00F28A] to-[#4BE96A] bg-clip-text text-transparent"
+              >
+                Supply Chains.
+              </motion.span>
+            </motion.h1>
+
+            <motion.div
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+              }}
+              className="flex flex-col sm:flex-row items-start gap-5 mt-6"
+            >
+              <CTAButton
+                label="Join as a Farmer"
+                icon={<ArrowRightIcon className="w-4 h-4 group-hover:translate-x-1 transition-transform" />}
+                href="/farmer-onboarding"
+                variant="primary"
+              />
+              <CTAButton
+                label="Explore Solutions"
+                icon={<PlayIcon className="w-4 h-4" />}
+                href="/retailer-solutions"
+                variant="secondary"
+                iconPlacement="left"
+              />
+            </motion.div>
+          </motion.div>
+
+          {/* Right side - Image with 3D glow */}
+          <motion.div
+            variants={{
+              hidden: { opacity: 0, x: 60 },
+              visible: { opacity: 1, x: 0, transition: { duration: 0.9, ease: "easeOut" } }
+            }}
+            className="relative flex items-center justify-center"
+          >
+            {/* Logo container with subtle parallax */}
+            <motion.div 
+              animate={{ y: [-10, 10, -10] }}
+              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+              className="relative w-full max-w-2xl aspect-square z-10"
+            >
+              <img
+                src="/ChatGPT Image Dec 3, 2025, 09_03_17 PM.png"
+                alt="Agrimater Platform"
+                className="w-full h-full object-contain drop-shadow-2xl"
+              />
+            </motion.div>
           </motion.div>
         </motion.div>
-      </motion.div>
+      </div>
     </section>
+  )
+}
+
+type CTAButtonProps = {
+  label: string
+  icon?: React.ReactNode
+  href: string
+  variant: "primary" | "secondary"
+  iconPlacement?: "left" | "right"
+}
+
+type AnimationState = "default" | "floating" | "anchored"
+
+type RectLike = {
+  top: number
+  left: number
+  width: number
+  height: number
+}
+
+const DELIVERY_SLOT_IDS = {
+  default: "delivery-animation-slot-default",
+  anchored: "delivery-animation-slot-anchored",
+} as const
+
+const clamp = (value: number, min = 0, max = 1) => Math.min(Math.max(value, min), max)
+const DELIVERY_PROGRESS_SPEEDUP = 0.8
+
+const getDocumentTop = (el: HTMLElement) => {
+  const rect = el.getBoundingClientRect()
+  return rect.top + window.scrollY
+}
+
+const getSlotRect = (id: string): RectLike | null => {
+  if (typeof document === "undefined") return null
+  const el = document.getElementById(id)
+  if (!el) return null
+  const rect = el.getBoundingClientRect()
+  return {
+    top: getDocumentTop(el),
+    left: rect.left + window.scrollX,
+    width: rect.width,
+    height: rect.height,
+  }
+}
+
+const DeliveryAnimationVisual = ({ className }: { className?: string }) => (
+  <Lottie animationData={deliveryAnimation} loop className={className ?? "w-full h-auto"} />
+)
+
+function DeliveryAnimationOverlay({ animationProgress }: { animationProgress: number }) {
+  const [slotRects, setSlotRects] = useState<Record<keyof typeof DELIVERY_SLOT_IDS, RectLike | null>>({
+    default: null,
+    anchored: null,
+  })
+  const frameRef = useRef<number | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+    const measure = () => {
+      frameRef.current = null
+      setSlotRects({
+        default: getSlotRect(DELIVERY_SLOT_IDS.default),
+        anchored: getSlotRect(DELIVERY_SLOT_IDS.anchored),
+      })
+    }
+
+    const scheduleMeasure = () => {
+      if (frameRef.current !== null) return
+      frameRef.current = window.requestAnimationFrame(measure)
+    }
+
+    scheduleMeasure()
+    window.addEventListener("scroll", scheduleMeasure, { passive: true })
+    window.addEventListener("resize", scheduleMeasure)
+
+    return () => {
+      window.removeEventListener("scroll", scheduleMeasure)
+      window.removeEventListener("resize", scheduleMeasure)
+      if (frameRef.current !== null) {
+        window.cancelAnimationFrame(frameRef.current)
+      }
+    }
+  }, [mounted])
+
+  if (!mounted) return null
+
+  const startRect = slotRects.default
+  const endRect = slotRects.anchored
+  let targetRect: RectLike | null = null
+
+  if (!startRect && !endRect) {
+    targetRect = null
+  } else if (animationProgress <= 0 || !endRect) {
+    targetRect = startRect ?? endRect
+  } else if (animationProgress >= 1 && endRect) {
+    targetRect = endRect
+  } else if (startRect && endRect) {
+    const progress = clamp(animationProgress)
+    targetRect = {
+      left: startRect.left + (endRect.left - startRect.left) * progress,
+      top: startRect.top + (endRect.top - startRect.top) * progress,
+      width: startRect.width + (endRect.width - startRect.width) * progress,
+      height: startRect.height + (endRect.height - startRect.height) * progress,
+    }
+  }
+
+  if (!targetRect) {
+    return null
+  }
+
+  const overlayTransition = { type: "spring", stiffness: 150, damping: 24, mass: 0.6 }
+  const rotationAngle = animationProgress * 330
+
+  return (
+    <motion.div
+      className="absolute left-0 top-0 z-10 pointer-events-none"
+      initial={false}
+      animate={{
+        x: targetRect.left,
+        y: targetRect.top,
+        width: targetRect.width,
+        height: targetRect.height,
+        opacity: 1,
+      }}
+      transition={overlayTransition}
+    >
+      <motion.div
+        className="w-full h-full drop-shadow-[0_10px_25px_rgba(0,0,0,0.25)]"
+        animate={{ rotate: rotationAngle }}
+        transition={{ type: "spring", stiffness: 120, damping: 18, mass: 0.5 }}
+      >
+        <DeliveryAnimationVisual className="w-full h-full" />
+      </motion.div>
+    </motion.div>
+  )
+}
+
+function CTAButton({
+  label,
+  icon,
+  href,
+  variant,
+  iconPlacement = "right",
+}: CTAButtonProps) {
+  const baseClasses =
+    variant === "primary"
+      ? "bg-gray-900 text-white hover:bg-gray-800"
+      : "border border-gray-300 hover:border-gray-400 text-gray-900 bg-white"
+  const iconFirst = iconPlacement === "left"
+
+  return (
+    <Link href={href} prefetch={true}>
+      <motion.button
+        type="button"
+        initial={{ scale: 1, opacity: 1 }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        className={`group relative z-40 px-[1.6rem] py-[0.8rem] rounded-full font-bold text-[0.9rem] flex items-center gap-3 transition-all duration-300 ${baseClasses}`}
+      >
+        {icon && (
+          <span className={iconFirst ? "order-1" : "order-2"}>
+            {icon}
+          </span>
+        )}
+        <span className={iconFirst ? "order-2" : "order-1"}>
+          {label}
+        </span>
+      </motion.button>
+    </Link>
   )
 }
 
@@ -489,6 +683,19 @@ function HeroSection() {
 function VisionSection() {
   const ref = useRef<HTMLDivElement>(null)
   const isInView = useInView(ref, { once: true, margin: "-100px" })
+  const lottieRef1 = useRef<any>(null)
+  const lottieRef2 = useRef<any>(null)
+  
+  useEffect(() => {
+    // Synchronize animations
+    if (lottieRef1.current && lottieRef2.current) {
+      lottieRef1.current.setSpeed(1)
+      lottieRef2.current.setSpeed(1)
+      lottieRef1.current.goToAndPlay(0)
+      lottieRef2.current.goToAndPlay(0)
+    }
+  }, [isInView])
+  
   const visionItems = [
     { icon: LeafIcon, text: "Sustainable Practices" },
     { icon: ShieldCheckIcon, text: "Verified at Every Step" },
@@ -497,7 +704,7 @@ function VisionSection() {
   ]
 
   return (
-    <section id="vision" ref={ref} className="py-32 md:py-40 relative overflow-hidden bg-white">
+    <section id="vision" ref={ref} className="py-32 md:py-40 relative overflow-hidden bg-white -mt-16">
       <div className="absolute inset-0 opacity-30">
         <div
           className="absolute inset-0"
@@ -509,82 +716,63 @@ function VisionSection() {
       </div>
 
       <div className="container mx-auto px-6 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-20 items-center">
+        <div className="flex flex-col items-center justify-center text-center">
           <motion.div
-            initial={{ opacity: 0, x: -60 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 1, ease: "easeOut" }}
-          >
-            <motion.span
-              initial={{ opacity: 0, y: 20 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ delay: 0.2 }}
-              className="inline-block px-4 py-1.5 rounded-full bg-[#00F28A]/10 text-[#00F28A] text-sm font-semibold mb-6"
-            >
-              Our Vision
-            </motion.span>
-
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-8 tracking-tight text-balance">
-              The Future of Fresh
-              <span className="gradient-text block">Begins Here</span>
-            </h2>
-
-            <p className="text-lg text-gray-600 mb-10 leading-relaxed text-pretty">
-              We're bridging the gap between farms and retail with cutting-edge AI technology. Our platform ensures
-              complete transparency, from soil to shelf — empowering farmers, retailers, and consumers with verified,
-              grade-level data and intelligent logistics.
-            </p>
-
-            <div className="grid sm:grid-cols-2 gap-4">
-              {visionItems.map((item, i) => (
-                <motion.div
-                  key={item.text}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={isInView ? { opacity: 1, y: 0 } : {}}
-                  transition={{ delay: 0.4 + i * 0.1 }}
-                  className="flex items-center gap-4 p-4 rounded-2xl glass-card group hover:neon-glow-sm transition-all duration-300"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#00F28A] to-[#4BE96A] flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                    <item.icon className="w-6 h-6 text-black" />
-                  </div>
-                  <span className="font-semibold text-gray-900">{item.text}</span>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 60 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
+            initial={{ opacity: 0, y: 60 }}
+            animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 1, ease: "easeOut", delay: 0.3 }}
-            className="relative"
+            className="relative flex items-center justify-center max-w-5xl mx-auto"
           >
-            <div className="relative aspect-square max-w-xl mx-auto">
-              <div className="relative rounded-3xl overflow-hidden neon-glow">
-                <img
-                  src="/futuristic-holographic-farm-interface-with-glowing.jpg"
-                  alt="Futuristic farm technology"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-tr from-[#00F28A]/20 via-transparent to-[#4BE96A]/20" />
-                <div className="absolute inset-0 scan-lines" />
-              </div>
-              <motion.div
-                animate={{ y: [-10, 10, -10] }}
-                transition={{ duration: 4, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-                className="absolute -bottom-6 -left-6 glass-card rounded-2xl p-5 shadow-2xl"
-              >
-                <div className="text-3xl font-bold gradient-text">99.2%</div>
-                <div className="text-sm text-gray-500 font-medium">Accuracy Rate</div>
-              </motion.div>
-              <motion.div
-                animate={{ y: [10, -10, 10] }}
-                transition={{ duration: 4, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut", delay: 2 }}
-                className="absolute -top-6 -right-6 glass-card rounded-2xl p-5 shadow-2xl"
-              >
-                <div className="text-3xl font-bold gradient-text">24/7</div>
-                <div className="text-sm text-gray-500 font-medium">Live Monitoring</div>
-              </motion.div>
+            {/* Background text "FUTURE" */}
+            <div className="absolute left-0 right-0 flex items-center justify-center -z-30 overflow-visible -translate-y-12">
+              <h2 className="text-[25vw] font-black text-gray-200 select-none opacity-70 tracking-[-0.05em] whitespace-nowrap leading-none" style={{ width: '100vw' }}>
+                FUTURE
+              </h2>
+            </div>
+            
+            {/* "The" text at left corner */}
+            <div className="absolute left-0 top-0 left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 sm:-translate-x-[12vw] md:-translate-x-[14vw] lg:-translate-x-[15vw] -translate-y-[5vw] sm:-translate-y-[6vw] md:-translate-y-[5.5vw]">
+              <h3 className="text-[8vw] sm:text-[7vw] md:text-[6vw] lg:text-6xl font-bold text-gray-900">The</h3>
+            </div>
+            
+            {/* "Begins" text at right corner */}
+            <div className="absolute right-0 bottom-0 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:translate-x-[12vw] md:translate-x-[14vw] lg:translate-x-[14.5rem] translate-y-[8vw] sm:translate-y-[6vw] md:translate-y-[5vw] lg:translate-y-12">
+              <h3 className="text-[8vw] sm:text-[7vw] md:text-[6vw] lg:text-6xl font-bold text-gray-900">Farming</h3>
+            </div>
+            
+            {/* Right side animation */}
+            <div className="absolute inset-0 flex items-center justify-center -z-10 scale-80 translate-x-40 translate-y-8">
+              <Lottie
+                lottieRef={lottieRef1}
+                animationData={rightAnimation}
+                loop={true}
+                className="w-full h-full"
+                style={{ filter: 'drop-shadow(0 25px 50px rgba(0, 0, 0, 0.3))' }}
+              />
+            </div>
+            
+            {/* Left side animation (mirrored) */}
+            <div className="absolute inset-0 flex items-center justify-center -z-10 scale-80 -translate-x-40 -scale-x-100 translate-y-8">
+              <Lottie
+                lottieRef={lottieRef2}
+                animationData={rightAnimation}
+                loop={true}
+                className="w-full h-full"
+                style={{ filter: 'drop-shadow(0 25px 50px rgba(0, 0, 0, 0.3))' }}
+              />
+            </div>
+            
+            {/* Ground shadow for center image */}
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[35%] h-8 bg-black/20 blur-xl rounded-full -z-20" />
+            
+            {/* Center image */}
+            <div className="relative w-[40%]">
+              <img
+                src="/ChatGPT Image Dec 4, 2025, 12_59_32 AM.png"
+                alt="Agritech Innovation"
+                className="w-full rounded-3xl relative z-10"
+                style={{ filter: 'drop-shadow(0 25px 50px rgba(0, 0, 0, 0.3))' }}
+              />
             </div>
           </motion.div>
         </div>
@@ -594,7 +782,15 @@ function VisionSection() {
 }
 
 // Features Section
-function FeaturesSection() {
+function FeaturesSection({
+  animationState,
+  onAnimationStateChange,
+  onProgressChange,
+}: {
+  animationState: AnimationState
+  onAnimationStateChange: (state: AnimationState) => void
+  onProgressChange: (value: number) => void
+}) {
   const ref = useRef<HTMLDivElement>(null)
   const isInView = useInView(ref, { once: true, margin: "-100px" })
   const features = [
@@ -603,71 +799,119 @@ function FeaturesSection() {
       title: "Verified Produce",
       description: "Blockchain-backed traceability ensuring authenticity from farm to consumer.",
       gradient: "from-emerald-400 to-green-500",
+      image: "/VERIFIEDPRODUCE.png",
     },
     {
       icon: BarChartIcon,
       title: "Grade-Level Precision",
       description: "AI-powered grading provides precise quality metrics across the supply chain.",
       gradient: "from-[#00F28A] to-[#4BE96A]",
+      image: "/GRADELEVEL.png",
     },
     {
       icon: TruckIcon,
       title: "Smart Logistics",
       description: "Intelligent route optimization ensures freshness throughout delivery.",
       gradient: "from-teal-400 to-emerald-500",
+      image: "/LOGISTIC.png",
     },
     {
       icon: BrainIcon,
       title: "Data-Driven Insights",
       description: "Advanced analytics for demand forecasting and market trends.",
       gradient: "from-green-400 to-[#4BE96A]",
+      image: "/DATADRAWN.png",
     },
   ]
 
-  return (
-    <section id="features" ref={ref} className="py-32 md:py-40 relative bg-gradient-to-b from-gray-50 to-white">
-      <div className="container mx-auto px-6 relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8 }}
-          className="text-center mb-20"
-        >
-          <span className="inline-block px-4 py-1.5 rounded-full bg-[#00F28A]/10 text-[#00F28A] text-sm font-semibold mb-6">
-            Features
-          </span>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 tracking-tight">
-            Powering the Agricultural
-            <span className="gradient-text block">Revolution</span>
-          </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Four pillars of innovation driving farm-to-retail excellence
-          </p>
-        </motion.div>
+  const lastStateRef = useRef<AnimationState>(animationState)
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {features.map((feature, i) => (
+  useEffect(() => {
+    lastStateRef.current = animationState
+  }, [animationState])
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const sourceEl = document.getElementById("features-animation-source")
+      const impactAnchor = document.getElementById("impact-animation-anchor")
+      if (!sourceEl || !impactAnchor) return
+
+      const sourceRect = sourceEl.getBoundingClientRect()
+      const impactRect = impactAnchor.getBoundingClientRect()
+      let nextState: AnimationState = "default"
+
+      if (impactRect.top <= window.innerHeight * 0.4) {
+        nextState = "anchored"
+      } else if (sourceRect.top <= window.innerHeight * 0.0) {
+        nextState = "floating"
+      }
+
+      const viewportHeight = window.innerHeight
+      const startOffset = getDocumentTop(sourceEl) - viewportHeight * 0.05
+      const endOffset = getDocumentTop(impactAnchor) - viewportHeight * 0.4
+      const range = endOffset - startOffset
+      const rawProgress = range <= 0 ? 1 : (window.scrollY - startOffset) / range
+      const acceleratedProgress = DELIVERY_PROGRESS_SPEEDUP <= 0 ? rawProgress : rawProgress / DELIVERY_PROGRESS_SPEEDUP
+      onProgressChange(clamp(acceleratedProgress))
+
+      if (nextState !== lastStateRef.current) {
+        lastStateRef.current = nextState
+        onAnimationStateChange(nextState)
+      }
+    }
+
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    handleScroll()
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [onAnimationStateChange, onProgressChange])
+
+  return (
+    <section id="features" ref={ref} className="py-0 md:py-16 relative bg-white mt-16 md:mt-0">
+      <div className="container mx-auto px-6 relative z-10">
+        <div className="grid lg:grid-cols-2 gap-16 items-start mb-0">
+          {/* Left side - Single feature image */}
+          <motion.div
+            initial={{ opacity: 0, x: -40 }}
+            animate={isInView ? { opacity: 1, x: 0 } : {}}
+            transition={{ duration: 0.8 }}
+            className="order-2 lg:order-1"
+          >
             <motion.div
-              key={feature.title}
-              initial={{ opacity: 0, y: 40 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.8, delay: i * 0.15 }}
+              whileHover={{ scale: 1.02 }}
+              className="rounded-3xl overflow-hidden inline-block"
             >
-              <motion.div
-                whileHover={{ y: -8, scale: 1.02 }}
-                className="h-full p-8 rounded-3xl glass-card hover:neon-glow-sm transition-all duration-500 group"
-              >
-                <motion.div
-                  whileHover={{ rotate: 5, scale: 1.1 }}
-                  className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-6 group-hover:animate-pulse-glow transition-all`}
-                >
-                  <feature.icon className="w-8 h-8 text-black" />
-                </motion.div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
-                <p className="text-gray-600 leading-relaxed">{feature.description}</p>
-              </motion.div>
+              <img
+                src="/ALLINONE.png"
+                alt="Features Overview"
+                className="w-auto h-auto max-w-full"
+              />
             </motion.div>
-          ))}
+          </motion.div>
+
+          {/* Right side - Heading */}
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.8 }}
+            className="flex flex-col justify-start order-1 lg:order-2 mt-16 md:mt-0"
+            id="features-animation-source"
+          >
+            <span className="inline-block px-4 py-1.5 rounded-full bg-[#00F28A]/10 text-[#00F28A] text-sm font-semibold mb-6 w-fit">
+              Features
+            </span>
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 tracking-tight">
+              Powering the Agricultural
+              <span className="gradient-text block">Revolution</span>
+            </h2>
+            <p className="text-lg text-gray-600 max-w-xl mb-8">
+              Four pillars of innovation driving farm-to-retail excellence
+            </p>
+            <div
+              id="delivery-animation-slot-default"
+              className="w-full max-w-md min-h-[240px]"
+              aria-hidden
+            />
+          </motion.div>
         </div>
       </div>
     </section>
@@ -675,71 +919,21 @@ function FeaturesSection() {
 }
 
 // Impact Section
-function ImpactSection() {
+function ImpactSection({ animationState }: { animationState: AnimationState }) {
   const ref = useRef<HTMLDivElement>(null)
   const isInView = useInView(ref, { once: true, margin: "-100px" })
-  const stats = [
-    { icon: UsersIcon, value: "500+", label: "Farmers Onboarded" },
-    { icon: TrophyIcon, value: "#113", label: "Tracxn Ranking" },
-    { icon: MapPinIcon, value: "2", label: "Active Zones" },
-  ]
+  const isAnchoredState = animationState === "anchored"
 
   return (
-    <section id="impact" ref={ref} className="py-32 md:py-40 relative overflow-hidden bg-white">
+    <section id="impact" ref={ref} className="py-16 md:py-32 relative overflow-hidden bg-white mt-0 md:mt-16">
       <div className="container mx-auto px-6">
-        <div className="grid lg:grid-cols-2 gap-20 items-center">
+        <div className="grid lg:grid-cols-2 gap-12 items-start">
+          {/* Left Half - Text and Stats Image */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={isInView ? { opacity: 1, scale: 1 } : {}}
-            transition={{ duration: 1 }}
-            className="relative order-2 lg:order-1"
-          >
-            <div className="relative aspect-square max-w-lg mx-auto">
-              <div className="absolute inset-0 rounded-3xl overflow-hidden">
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    backgroundImage: `linear-gradient(rgba(0, 242, 138, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 242, 138, 0.1) 1px, transparent 1px)`,
-                    backgroundSize: "30px 30px",
-                  }}
-                />
-              </div>
-              <img
-                src="/minimal-outline-map-of-india-dark-gray-on-white-ba.jpg"
-                alt="India map"
-                className="w-full h-full object-contain opacity-30"
-              />
-              {[
-                { name: "Pune", x: 35, y: 55 },
-                { name: "Hinjewadi", x: 33, y: 53 },
-              ].map((zone, i) => (
-                <motion.div
-                  key={zone.name}
-                  initial={{ scale: 0 }}
-                  animate={isInView ? { scale: 1 } : {}}
-                  transition={{ delay: 0.5 + i * 0.2, type: "spring" }}
-                  className="absolute"
-                  style={{ left: `${zone.x}%`, top: `${zone.y}%` }}
-                >
-                  <motion.div
-                    animate={{ scale: [1, 2.5, 1], opacity: [0.6, 0, 0.6] }}
-                    transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
-                    className="absolute w-8 h-8 rounded-full bg-[#00F28A]/40 -translate-x-1/2 -translate-y-1/2"
-                  />
-                  <div className="w-4 h-4 rounded-full bg-[#00F28A] neon-glow-sm -translate-x-1/2 -translate-y-1/2" />
-                  <div className="absolute left-4 top-0 whitespace-nowrap glass px-3 py-1 rounded-full text-sm font-semibold text-gray-900">
-                    {zone.name}
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 60 }}
+            initial={{ opacity: 0, x: -60 }}
             animate={isInView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 1 }}
-            className="order-1 lg:order-2"
+            className="order-1 lg:order-1"
           >
             <span className="inline-block px-4 py-1.5 rounded-full bg-[#00F28A]/10 text-[#00F28A] text-sm font-semibold mb-6">
               Impact
@@ -748,28 +942,169 @@ function ImpactSection() {
               Making an Impact
               <span className="gradient-text block">Across Bharat</span>
             </h2>
+            <div
+              id="impact-animation-anchor"
+              className={`flex justify-center transition-all duration-300 ${isAnchoredState ? "mb-8" : "mb-0"}`}
+            >
+              <div
+                id="delivery-animation-slot-anchored"
+                className={`w-full max-w-md min-h-[240px] ${isAnchoredState ? "opacity-100" : "opacity-0"}`}
+                aria-hidden
+              />
+            </div>
             <div className="glass-card rounded-3xl p-8 mb-10">
+              <p className="text-lg text-gray-600 leading-relaxed">
+                We're building the fastest, freshest <span className="text-[#00F28A] font-semibold">farm-to-retail</span> network in Bharat powered by intelligence and trust.
+              </p>
+            </div>
+            
+            {/* Impact Stats Image */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={isInView ? { opacity: 1, y: 0 } : {}}
+              transition={{ delay: 0.6 }}
+              className="mt-6 relative"
+            >
+              {/* Soft Gradient Background */}
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-emerald-100/60 via-white/40 to-white pointer-events-none" />
+              
+              <img
+                src="/ChatGPT%20Image%20Dec%205,%202025,%2002_14_00%20AM.png"
+                alt="Agrimater impact stats"
+                className="w-full h-auto object-cover rounded-2xl relative z-10"
+                loading="lazy"
+              />
+            </motion.div>
+          </motion.div>
+
+          {/* Right Half - Map */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={isInView ? { opacity: 1, scale: 1 } : {}}
+            transition={{ duration: 1 }}
+            className="relative order-2 lg:order-2 mt-16 lg:mt-16"
+          >
+            <div className="relative aspect-square max-w-lg mx-auto">
+              {/* Outer glow effect */}
+              <div className="absolute -inset-4 bg-gradient-to-r from-[#00F28A]/20 via-[#4BE96A]/20 to-[#00F28A]/20 rounded-[2rem] blur-2xl opacity-70" />
+              
+              {/* Animated border */}
+              <div className="absolute -inset-[2px] bg-gradient-to-r from-[#00F28A] via-[#4BE96A] to-[#00F28A] rounded-3xl animate-pulse opacity-60" />
+              
+              {/* Map container */}
+              <div className="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl bg-white p-1">
+                <div className="relative w-full h-full rounded-[1.25rem] overflow-hidden">
+                  <iframe
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3781.7891234567890!2d73.6868!3d18.5912!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2sHinjewadi%20Phase%201%2C%20Pune!5e0!3m2!1sen!2sin!4v1234567890"
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    className="absolute inset-0"
+                  />
+                </div>
+              </div>
+              
+              {/* Location badge */}
+              <motion.div 
+                initial={{ y: 20, opacity: 0 }}
+                animate={isInView ? { y: 0, opacity: 1 } : {}}
+                transition={{ delay: 0.5, duration: 0.6 }}
+                className="absolute -bottom-4 left-1/2 -translate-x-1/2 z-10"
+              >
+                <div className="bg-white px-6 py-3 rounded-full shadow-xl border border-gray-100 flex items-center gap-3">
+                  <div className="relative">
+                    <div className="w-3 h-3 rounded-full bg-[#00F28A]" />
+                    <div className="absolute inset-0 w-3 h-3 rounded-full bg-[#00F28A] animate-ping opacity-75" />
+                  </div>
+                  <span className="text-sm font-bold text-gray-900">Agrimater Pune Unit</span>
+                  <MapPinIcon className="w-4 h-4 text-[#00F28A]" />
+                </div>
+              </motion.div>
+              
+              {/* Corner decorations */}
+              <div className="absolute -top-2 -left-2 w-6 h-6 border-t-2 border-l-2 border-[#00F28A] rounded-tl-lg" />
+              <div className="absolute -top-2 -right-2 w-6 h-6 border-t-2 border-r-2 border-[#00F28A] rounded-tr-lg" />
+              <div className="absolute -bottom-2 -left-2 w-6 h-6 border-b-2 border-l-2 border-[#00F28A] rounded-bl-lg" />
+              <div className="absolute -bottom-2 -right-2 w-6 h-6 border-b-2 border-r-2 border-[#00F28A] rounded-br-lg" />
+            </div>
+
+            {/* Text Content - Below Map */}
+            <div className="glass-card rounded-3xl p-8 mt-30">
               <p className="text-lg text-gray-600 leading-relaxed">
                 In a competitive landscape of{" "}
                 <span className="text-[#00F28A] font-semibold">160+ agritech startups</span>, Agrimater has carved its
                 niche, earning recognition on Tracxn with a{" "}
-                <span className="text-[#00F28A] font-semibold">ranking of #113</span>. We're just getting started.
+                <span className="text-[#00F28A] font-semibold">ranking of 101</span>. We're just getting started.
               </p>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              {stats.map((stat, i) => (
-                <motion.div
-                  key={stat.label}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={isInView ? { opacity: 1, y: 0 } : {}}
-                  transition={{ delay: 0.6 + i * 0.1 }}
-                  className="text-center p-6 rounded-2xl bg-gray-50 hover:bg-gray-100 transition-colors"
-                >
-                  <stat.icon className="w-8 h-8 text-[#00F28A] mx-auto mb-3" />
-                  <div className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</div>
-                  <div className="text-sm text-gray-500">{stat.label}</div>
-                </motion.div>
-              ))}
+              
+              {/* Talk with AI Button */}
+              <div className="mt-8 flex justify-center">
+                <Link href="/investor-access">
+                  <motion.button
+                    whileHover={{ 
+                      scale: 1.02,
+                      boxShadow: "0 20px 40px rgba(0, 242, 138, 0.25), 0 0 60px rgba(0, 242, 138, 0.15)",
+                      y: -2
+                    }}
+                    whileTap={{ scale: 0.98 }}
+                    className="group relative px-10 py-4 rounded-2xl bg-gradient-to-r from-[#00F28A] via-[#2EF47A] to-[#4BE96A] text-gray-900 text-base font-bold shadow-xl shadow-[#00f28a]/20 transition-all duration-500 flex items-center gap-3 overflow-hidden border border-[#00F28A]/20"
+                  >
+                    {/* Animated background gradient */}
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-[#4BE96A] via-[#2EF47A] to-[#00F28A] opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                      initial={false}
+                    />
+                    
+                    {/* Shimmer effect */}
+                    <motion.div
+                      className="absolute inset-0 opacity-0 group-hover:opacity-100"
+                      animate={{
+                        background: [
+                          "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)",
+                          "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%)"
+                        ],
+                        x: ["-100%", "200%"]
+                      }}
+                      transition={{
+                        duration: 1.5,
+                        repeat: Infinity,
+                        ease: "linear"
+                      }}
+                    />
+                    
+                    <div className="relative z-10 flex items-center gap-3">
+                      <motion.div
+                        animate={{ 
+                          rotate: [0, 5, -5, 0],
+                          scale: [1, 1.1, 1]
+                        }}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      >
+                        <BrainIcon className="w-6 h-6" />
+                      </motion.div>
+                      <span className="tracking-wide">Talk with AI</span>
+                      <motion.div
+                        className="w-5 h-5"
+                        animate={{ x: [0, 4, 0] }}
+                        transition={{
+                          duration: 1.5,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      >
+                        <SparklesIcon className="w-5 h-5" />
+                      </motion.div>
+                    </div>
+                  </motion.button>
+                </Link>
+              </div>
             </div>
           </motion.div>
         </div>
@@ -784,55 +1119,174 @@ function TeamSection() {
   const isInView = useInView(ref, { once: true, margin: "-100px" })
 
   return (
-    <section id="team" ref={ref} className="py-32 md:py-40 relative bg-gradient-to-b from-gray-50 to-white">
+    <section id="team" ref={ref} className="py-6 md:py-4 relative overflow-hidden">
+      {/* Background Effects */}
+      <div className="absolute inset-0 bg-gradient-to-b from-white via-emerald-50/30 to-white" />
+      <div className="absolute top-20 left-10 w-72 h-72 bg-[#00F28A]/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-20 right-10 w-96 h-96 bg-[#4BE96A]/10 rounded-full blur-3xl" />
+      
       <div className="container mx-auto px-6 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8 }}
-          className="text-center mb-16"
+          className="text-left mb-20"
         >
           <span className="inline-block px-4 py-1.5 rounded-full bg-[#00F28A]/10 text-[#00F28A] text-sm font-semibold mb-6">
             Leadership
           </span>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 tracking-tight">
-            The Visionary Behind
-            <span className="gradient-text block">Agrimater</span>
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 tracking-tight mb-4">
+            The Visionaries Behind
+            <span className="text-[#00F28A] block">Agrimater</span>
           </h2>
+          <p className="text-lg text-gray-600 max-w-2xl">
+            Meet the innovators driving agricultural transformation across Bharat
+          </p>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 60 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 1, delay: 0.3 }}
-          className="max-w-4xl mx-auto"
-        >
-          <div className="glass-card rounded-[2rem] p-10 md:p-14 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#00F28A]/10 to-transparent rounded-full blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-[#4BE96A]/10 to-transparent rounded-full blur-3xl" />
-            <div className="relative flex flex-col md:flex-row items-center gap-10">
-              <motion.div whileHover={{ scale: 1.05 }} className="relative flex-shrink-0">
-                <div className="w-40 h-40 md:w-48 md:h-48 rounded-full bg-gradient-to-br from-[#00F28A] to-[#4BE96A] p-1 neon-glow">
-                  <div className="w-full h-full rounded-full bg-gray-100 flex items-center justify-center">
-                    <span className="text-6xl font-bold gradient-text">DS</span>
+        <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+          {/* Dhairyashil Shinde Card */}
+          <motion.div
+            initial={{ opacity: 0, x: -60 }}
+            animate={isInView ? { opacity: 1, x: 0 } : {}}
+            transition={{ duration: 1, delay: 0.2 }}
+          >
+            <div className="group relative h-full">
+              {/* Outer glow on hover */}
+              <div className="absolute -inset-1 bg-gradient-to-r from-[#00F28A] via-[#4BE96A] to-[#00F28A] rounded-[2.5rem] opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500" />
+              
+              <div className="glass-card rounded-[2rem] p-8 md:p-10 relative overflow-hidden h-full transition-transform duration-300 group-hover:scale-[1.02]">
+                {/* Animated background gradients */}
+                <div className="absolute top-0 right-0 w-56 h-56 bg-gradient-to-bl from-[#00F28A]/20 to-transparent rounded-full blur-3xl transition-all duration-500 group-hover:scale-150" />
+                <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-[#4BE96A]/20 to-transparent rounded-full blur-3xl transition-all duration-500 group-hover:scale-150" />
+                
+                {/* Decorative corner accent */}
+                <div className="absolute top-6 right-6 w-16 h-16 border-t-2 border-r-2 border-[#00F28A]/20 rounded-tr-2xl" />
+                
+                <div className="relative flex flex-col items-center text-center">
+                  <motion.div 
+                    whileHover={{ scale: 1.1, rotate: 5 }} 
+                    transition={{ type: "spring", stiffness: 300 }}
+                    className="relative flex-shrink-0 mb-6"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#00F28A] to-[#4BE96A] rounded-full blur-md opacity-50 animate-pulse" />
+                    <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-gradient-to-br from-[#00F28A] to-[#4BE96A] p-[3px] relative">
+                      <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
+                        <span className="text-5xl font-bold gradient-text">DS</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                  
+                  <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Dhairyashil Shinde</h3>
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="h-px w-8 bg-gradient-to-r from-transparent to-[#00F28A]" />
+                    <p className="text-lg text-[#00F28A] font-semibold">Founder & CEO</p>
+                    <div className="h-px w-8 bg-gradient-to-l from-transparent to-[#00F28A]" />
                   </div>
-                </div>
-              </motion.div>
-              <div className="text-center md:text-left">
-                <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Dhairyashil Shinde</h3>
-                <p className="text-lg text-[#00F28A] font-semibold mb-6">Founder & CEO</p>
-                <p className="text-gray-600 mb-8">Visionary entrepreneur building AI for Bharat</p>
-                <div className="relative">
-                  <QuoteIcon className="w-10 h-10 text-[#00F28A]/20 absolute -top-4 -left-2" />
-                  <p className="text-xl md:text-2xl text-gray-900 italic leading-relaxed pl-8">
-                    "We started small but dared to dream big. Every farmer deserves access to fair markets, and every
-                    consumer deserves to know where their food comes from."
-                  </p>
+                  
+                  <p className="text-gray-600 mb-4 text-base">Visionary entrepreneur building AI for Bharat</p>
+                  
+                  {/* Social Icons */}
+                  <div className="flex items-center justify-center gap-3 mb-8">
+                    <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-gray-100 hover:bg-[#00F28A]/10 flex items-center justify-center transition-all duration-300 hover:scale-110">
+                      <svg className="w-4 h-4 text-gray-700" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+                      </svg>
+                    </a>
+                    <a href="mailto:contact@agrimater.com" className="w-9 h-9 rounded-full bg-gray-100 hover:bg-[#00F28A]/10 flex items-center justify-center transition-all duration-300 hover:scale-110">
+                      <svg className="w-4 h-4 text-gray-700" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+                      </svg>
+                    </a>
+                    <a href="#" target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-gray-100 hover:bg-[#00F28A]/10 flex items-center justify-center transition-all duration-300 hover:scale-110">
+                      <svg className="w-4 h-4 text-gray-700" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                      </svg>
+                    </a>
+                  </div>
+                  
+                  <div className="relative bg-gradient-to-br from-emerald-50 to-white rounded-2xl p-6 border border-[#00F28A]/10">
+                    <QuoteIcon className="w-8 h-8 text-[#00F28A]/30 absolute -top-2 -left-2" />
+                    <p className="text-base md:text-lg text-gray-800 italic leading-relaxed">
+                      "Every farmer deserves access to fair markets, and every consumer deserves to know where their food comes from."
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
+
+          {/* Aman Pokale Card */}
+          <motion.div
+            initial={{ opacity: 0, x: 60 }}
+            animate={isInView ? { opacity: 1, x: 0 } : {}}
+            transition={{ duration: 1, delay: 0.4 }}
+          >
+            <div className="group relative h-full">
+              {/* Outer glow on hover */}
+              <div className="absolute -inset-1 bg-gradient-to-r from-[#00F28A] via-[#4BE96A] to-[#00F28A] rounded-[2.5rem] opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500" />
+              
+              <div className="glass-card rounded-[2rem] p-8 md:p-10 relative overflow-hidden h-full transition-transform duration-300 group-hover:scale-[1.02]">
+                {/* Animated background gradients */}
+                <div className="absolute top-0 right-0 w-56 h-56 bg-gradient-to-bl from-[#00F28A]/20 to-transparent rounded-full blur-3xl transition-all duration-500 group-hover:scale-150" />
+                <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-[#4BE96A]/20 to-transparent rounded-full blur-3xl transition-all duration-500 group-hover:scale-150" />
+                
+                {/* Decorative corner accent */}
+                <div className="absolute top-6 left-6 w-16 h-16 border-t-2 border-l-2 border-[#00F28A]/20 rounded-tl-2xl" />
+                
+                <div className="relative flex flex-col items-center text-center">
+                  <motion.div 
+                    whileHover={{ scale: 1.1, rotate: -5 }} 
+                    transition={{ type: "spring", stiffness: 300 }}
+                    className="relative flex-shrink-0 mb-6"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#4BE96A] to-[#00F28A] rounded-full blur-md opacity-50 animate-pulse" />
+                    <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-gradient-to-br from-[#4BE96A] to-[#00F28A] p-[3px] relative">
+                      <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
+                        <span className="text-5xl font-bold gradient-text">AP</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                  
+                  <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Aman Pokale</h3>
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="h-px w-8 bg-gradient-to-r from-transparent to-[#00F28A]" />
+                    <p className="text-lg text-[#00F28A] font-semibold">Founding Member</p>
+                    <div className="h-px w-8 bg-gradient-to-l from-transparent to-[#00F28A]" />
+                  </div>
+                  
+                  <p className="text-gray-600 mb-4 text-base">Driving innovation in agricultural technology</p>
+                  
+                  {/* Social Icons */}
+                  <div className="flex items-center justify-center gap-3 mb-8">
+                    <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-gray-100 hover:bg-[#00F28A]/10 flex items-center justify-center transition-all duration-300 hover:scale-110">
+                      <svg className="w-4 h-4 text-gray-700" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+                      </svg>
+                    </a>
+                    <a href="mailto:contact@agrimater.com" className="w-9 h-9 rounded-full bg-gray-100 hover:bg-[#00F28A]/10 flex items-center justify-center transition-all duration-300 hover:scale-110">
+                      <svg className="w-4 h-4 text-gray-700" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+                      </svg>
+                    </a>
+                    <a href="#" target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-gray-100 hover:bg-[#00F28A]/10 flex items-center justify-center transition-all duration-300 hover:scale-110">
+                      <svg className="w-4 h-4 text-gray-700" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                      </svg>
+                    </a>
+                  </div>
+                  
+                  <div className="relative bg-gradient-to-br from-emerald-50 to-white rounded-2xl p-6 border border-[#00F28A]/10">
+                    <QuoteIcon className="w-8 h-8 text-[#00F28A]/30 absolute -top-2 -left-2" />
+                    <p className="text-base md:text-lg text-gray-800 italic leading-relaxed">
+                      "Together, we're transforming how agriculture works, making it smarter and more sustainable."
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
       </div>
     </section>
   )
@@ -847,10 +1301,34 @@ function PartnerSection() {
   const [submitted, setSubmitted] = useState(false)
 
   const partnerTypes = [
-    { icon: UsersIcon, label: "For FPOs", href: "/farmer-onboarding" },
-    { icon: BarChartIcon, label: "For Retailers", href: "/retailer-solutions" },
-    { icon: TruckIcon, label: "For Logistics", href: "/retailer-solutions" },
-    { icon: SparklesIcon, label: "Investor Access", href: "/investor-access" },
+    { 
+      icon: UsersIcon, 
+      label: "For FPOs", 
+      href: "/farmer-onboarding",
+      description: "Empower farmer collectives with verified produce",
+      gradient: "from-[#00f28a]/20 to-[#4be96a]/20"
+    },
+    { 
+      icon: BarChartIcon, 
+      label: "For Retailers", 
+      href: "/retailer-solutions",
+      description: "Access quality-graded agricultural products",
+      gradient: "from-[#4be96a]/20 to-[#00f28a]/20"
+    },
+    { 
+      icon: TruckIcon, 
+      label: "For Logistics", 
+      href: "/retailer-solutions",
+      description: "Optimize delivery with smart route planning",
+      gradient: "from-[#00f28a]/20 to-[#4be96a]/20"
+    },
+    { 
+      icon: SparklesIcon, 
+      label: "Investor Access", 
+      href: "/investor-access",
+      description: "Join the agritech revolution",
+      gradient: "from-[#4be96a]/20 to-[#00f28a]/20"
+    },
   ]
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -874,143 +1352,265 @@ function PartnerSection() {
   }
 
   return (
-    <section id="partner" ref={ref} className="py-32 md:py-40 relative overflow-hidden bg-white">
-      <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-b from-white via-[#00F28A]/5 to-white" />
+    <section id="partner" ref={ref} className="py-24 md:py-32 relative overflow-hidden">
+      {/* Leaves Falling Animation */}
+      <div className="absolute inset-0 pointer-events-none z-0 opacity-20">
+        <Lottie animationData={leavesFallingAnimation} loop className="w-full h-full" />
       </div>
-      <div className="container mx-auto px-6 relative z-10">
+      
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-[#00f28a]/5 rounded-full blur-3xl animate-pulse-slow" />
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-[#4be96a]/5 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: "2s" }} />
+      </div>
+
+      <div className="container mx-auto px-4 relative z-10">
+        {/* Enhanced title with badge */}
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8 }}
           className="text-center mb-16"
         >
-          <span className="inline-block px-4 py-1.5 rounded-full bg-[#00F28A]/10 text-[#00F28A] text-sm font-semibold mb-6">
-            Partner With Us
-          </span>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 tracking-tight">
-            Join the<span className="gradient-text"> Revolution</span>
-          </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={isInView ? { opacity: 1, scale: 1 } : {}}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-6"
+          >
+            <SparklesIcon className="w-4 h-4 text-[#00f28a]" />
+            <span className="text-sm font-medium bg-gradient-to-r from-[#00f28a] to-[#4be96a] bg-clip-text text-transparent">
+              Partner With Us
+            </span>
+          </motion.div>
+          
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ delay: 0.1 }}
+            className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6"
+          >
+            Join the{" "}
+            <span className="bg-gradient-to-r from-[#00f28a] to-[#4be96a] bg-clip-text text-transparent">
+              Revolution
+            </span>
+          </motion.h2>
+          
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ delay: 0.2 }}
+            className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto"
+          >
             Whether you're a farmer, retailer, or investor — there's a place for you in our ecosystem.
-          </p>
+          </motion.p>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ delay: 0.2 }}
-          className="flex flex-wrap justify-center gap-4 mb-20"
-        >
-          {partnerTypes.map((partner, i) => (
-            <Link key={partner.label} href={partner.href}>
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={isInView ? { opacity: 1, scale: 1 } : {}}
-                transition={{ delay: 0.3 + i * 0.1 }}
-                whileHover={{ scale: 1.05, y: -4 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-3 px-6 py-4 rounded-full glass-card hover:neon-glow-sm transition-all duration-300 cursor-pointer"
-              >
-                <partner.icon className="w-5 h-5 text-[#00F28A]" />
-                <span className="font-semibold text-gray-900">{partner.label}</span>
-              </motion.div>
-            </Link>
-          ))}
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ delay: 0.5 }}
-          className="max-w-2xl mx-auto"
-        >
-          <div className="glass-card rounded-3xl p-8 md:p-12">
-            {submitted ? (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="text-center py-12"
-              >
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#00F28A] to-[#4BE96A] flex items-center justify-center mx-auto mb-6 neon-glow">
-                  <SparklesIcon className="w-10 h-10 text-black" />
+        {/* Contact form with enhanced wrapper */}
+        <div className="max-w-4xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-8 items-center">
+            {/* Left side - Highlighted text */}
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              animate={isInView ? { opacity: 1, x: 0 } : {}}
+              className="lg:pr-8"
+            >
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <h3 className="text-3xl md:text-4xl font-bold">
+                    <span className="text-foreground">Ready to</span>
+                    <br />
+                    <span className="bg-gradient-to-r from-[#00f28a] to-[#4be96a] bg-clip-text text-transparent">
+                      Transform Together?
+                    </span>
+                  </h3>
+                  <p className="text-muted-foreground text-lg">
+                    Drop us a message and let's discuss how we can revolutionize agricultural supply chains together.
+                  </p>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">Thank You!</h3>
-                <p className="text-gray-600">We'll be in touch soon.</p>
-              </motion.div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid sm:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">Name</label>
-                    <input
-                      type="text"
-                      required
-                      value={formState.name}
-                      onChange={(e) => setFormState({ ...formState, name: e.target.value })}
-                      className="w-full px-5 py-4 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#00F28A] focus:ring-2 focus:ring-[#00F28A]/20 outline-none transition-all text-gray-900 placeholder-gray-400"
-                      placeholder="Your name"
-                    />
+                
+                {/* Stats or benefits */}
+                <div className="grid grid-cols-2 gap-4 pt-4">
+                  <div className="space-y-1">
+                    <div className="text-2xl font-bold text-[#00f28a]">24h</div>
+                    <div className="text-sm text-muted-foreground">Response Time</div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">Email</label>
-                    <input
-                      type="email"
-                      required
-                      value={formState.email}
-                      onChange={(e) => setFormState({ ...formState, email: e.target.value })}
-                      className="w-full px-5 py-4 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#00F28A] focus:ring-2 focus:ring-[#00F28A]/20 outline-none transition-all text-gray-900 placeholder-gray-400"
-                      placeholder="you@example.com"
-                    />
+                  <div className="space-y-1">
+                    <div className="text-2xl font-bold text-[#00f28a]">100+</div>
+                    <div className="text-sm text-muted-foreground">Active Partners</div>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">Category</label>
-                  <select
-                    required
-                    value={formState.category}
-                    onChange={(e) => setFormState({ ...formState, category: e.target.value })}
-                    className="w-full px-5 py-4 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#00F28A] focus:ring-2 focus:ring-[#00F28A]/20 outline-none transition-all text-gray-900"
+              </div>
+            </motion.div>
+            
+            {/* Right side - Contact form */}
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              animate={isInView ? { opacity: 1, x: 0 } : {}}
+              className="relative"
+            >
+              {/* Form container */}
+              <div className="relative glass-card rounded-3xl p-8 md:p-10 border border-gray-200 shadow-xl overflow-hidden">
+                
+                {submitted ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="text-center py-12"
                   >
-                    <option value="">Select category</option>
-                    <option value="farmer">Farmer / FPO</option>
-                    <option value="retailer">Retailer</option>
-                    <option value="logistics">Logistics Partner</option>
-                    <option value="investor">Investor</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">Message</label>
-                  <textarea
-                    required
-                    rows={4}
-                    value={formState.message}
-                    onChange={(e) => setFormState({ ...formState, message: e.target.value })}
-                    className="w-full px-5 py-4 rounded-xl bg-gray-50 border border-gray-200 focus:border-[#00F28A] focus:ring-2 focus:ring-[#00F28A]/20 outline-none transition-all resize-none text-gray-900 placeholder-gray-400"
-                    placeholder="Tell us about yourself..."
-                  />
-                </div>
-                <motion.button
-                  type="submit"
-                  disabled={isSubmitting}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full py-4 rounded-xl bg-gradient-to-r from-[#00F28A] to-[#4BE96A] text-black font-bold text-lg flex items-center justify-center gap-3 neon-glow hover:shadow-[0_0_40px_rgba(0,242,138,0.5)] transition-all disabled:opacity-50"
-                >
-                  {isSubmitting ? (
-                    <div className="w-6 h-6 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <span>Send Message</span>
-                      <SendIcon className="w-5 h-5" />
-                    </>
-                  )}
-                </motion.button>
-              </form>
-            )}
+                    <motion.div 
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", duration: 0.6 }}
+                      className="w-20 h-20 rounded-full bg-gradient-to-br from-[#00F28A] to-[#4BE96A] flex items-center justify-center mx-auto mb-6 neon-glow"
+                    >
+                      <SparklesIcon className="w-10 h-10 text-black" />
+                    </motion.div>
+                    <motion.h3 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="text-2xl font-bold text-gray-900 mb-3"
+                    >
+                      Thank You!
+                    </motion.h3>
+                    <motion.p 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="text-gray-600"
+                    >
+                      We'll be in touch soon.
+                    </motion.p>
+                  </motion.div>
+                ) : (
+                  <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
+                    <div className="grid sm:grid-cols-2 gap-6">
+                      <div className="relative group/input">
+                        <label className="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-md bg-[#00f28a]/10 flex items-center justify-center">
+                            <UsersIcon className="w-3 h-3 text-[#00f28a]" />
+                          </div>
+                          Name
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            required
+                            value={formState.name}
+                            onChange={(e) => setFormState({ ...formState, name: e.target.value })}
+                            className="w-full px-5 py-4 rounded-xl bg-gray-50/50 border-2 border-gray-200 focus:border-[#00F28A] focus:ring-4 focus:ring-[#00F28A]/10 outline-none transition-all text-gray-900 placeholder-gray-400 group-hover/input:border-[#00f28a]/50"
+                            placeholder="Your name"
+                          />
+                          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-[#00f28a]/0 via-[#00f28a]/5 to-[#00f28a]/0 opacity-0 group-hover/input:opacity-100 transition-opacity pointer-events-none" />
+                        </div>
+                      </div>
+                      <div className="relative group/input">
+                        <label className="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-md bg-[#00f28a]/10 flex items-center justify-center">
+                            <MailIcon className="w-3 h-3 text-[#00f28a]" />
+                          </div>
+                          Email
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="email"
+                            required
+                            value={formState.email}
+                            onChange={(e) => setFormState({ ...formState, email: e.target.value })}
+                            className="w-full px-5 py-4 rounded-xl bg-gray-50/50 border-2 border-gray-200 focus:border-[#00F28A] focus:ring-4 focus:ring-[#00F28A]/10 outline-none transition-all text-gray-900 placeholder-gray-400 group-hover/input:border-[#00f28a]/50"
+                            placeholder="you@example.com"
+                          />
+                          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-[#00f28a]/0 via-[#00f28a]/5 to-[#00f28a]/0 opacity-0 group-hover/input:opacity-100 transition-opacity pointer-events-none" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="relative group/input">
+                      <label className="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-md bg-[#00f28a]/10 flex items-center justify-center">
+                          <BarChartIcon className="w-3 h-3 text-[#00f28a]" />
+                        </div>
+                        Category
+                      </label>
+                      <div className="relative">
+                        <select
+                          required
+                          value={formState.category}
+                          onChange={(e) => setFormState({ ...formState, category: e.target.value })}
+                          className="w-full px-5 py-4 rounded-xl bg-gray-50/50 border-2 border-gray-200 focus:border-[#00F28A] focus:ring-4 focus:ring-[#00F28A]/10 outline-none transition-all text-gray-900 group-hover/input:border-[#00f28a]/50 appearance-none cursor-pointer"
+                        >
+                          <option value="">Select category</option>
+                          <option value="farmer">Farmer / FPO</option>
+                          <option value="retailer">Retailer</option>
+                          <option value="logistics">Logistics Partner</option>
+                          <option value="investor">Investor</option>
+                          <option value="other">Other</option>
+                        </select>
+                        <ChevronDownIcon className="w-5 h-5 absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-[#00f28a]/0 via-[#00f28a]/5 to-[#00f28a]/0 opacity-0 group-hover/input:opacity-100 transition-opacity pointer-events-none" />
+                      </div>
+                    </div>
+                    <div className="relative group/input">
+                      <label className="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-md bg-[#00f28a]/10 flex items-center justify-center">
+                          <MessageSquareIcon className="w-3 h-3 text-[#00f28a]" />
+                        </div>
+                        Message
+                      </label>
+                      <div className="relative">
+                        <textarea
+                          required
+                          rows={4}
+                          value={formState.message}
+                          onChange={(e) => setFormState({ ...formState, message: e.target.value })}
+                          className="w-full px-5 py-4 rounded-xl bg-gray-50/50 border-2 border-gray-200 focus:border-[#00F28A] focus:ring-4 focus:ring-[#00F28A]/10 outline-none transition-all resize-none text-gray-900 placeholder-gray-400 group-hover/input:border-[#00f28a]/50"
+                          placeholder="Tell us about yourself..."
+                        />
+                        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-[#00f28a]/0 via-[#00f28a]/5 to-[#00f28a]/0 opacity-0 group-hover/input:opacity-100 transition-opacity pointer-events-none" />
+                      </div>
+                    </div>
+                    
+                    {/* Enhanced submit button */}
+                    <motion.button
+                      type="submit"
+                      disabled={isSubmitting}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="relative w-full py-4 rounded-xl overflow-hidden group/btn disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-[#00F28A] via-[#4BE96A] to-[#00F28A] bg-[length:200%_100%] animate-gradient-shift" />
+                      <div className="absolute inset-0 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300">
+                        <div className="absolute inset-0 bg-[#00f28a] blur-xl opacity-50 animate-pulse-glow" />
+                      </div>
+                      <div className="relative z-10 flex items-center justify-center gap-3 text-black font-bold text-lg">
+                        {isSubmitting ? (
+                          <>
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+                              className="w-6 h-6 border-2 border-black/30 border-t-black rounded-full"
+                            />
+                            <span>Sending...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Send Message</span>
+                            <SendIcon className="w-5 h-5 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform duration-300" />
+                          </>
+                        )}
+                      </div>
+                      {/* Button edge glow */}
+                      <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-white to-transparent opacity-50" />
+                      <div className="absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-white to-transparent opacity-50" />
+                    </motion.button>
+                  </form>
+                )}
+                
+                {/* Decorative particles */}
+                <div className="absolute top-10 right-10 w-2 h-2 rounded-full bg-[#00f28a] opacity-40 blur-sm animate-pulse-slow pointer-events-none" />
+                <div className="absolute bottom-20 left-10 w-1.5 h-1.5 rounded-full bg-[#4be96a] opacity-30 blur-sm animate-pulse-slow pointer-events-none" style={{ animationDelay: "1s" }} />
+              </div>
+            </motion.div>
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   )
@@ -1018,14 +1618,20 @@ function PartnerSection() {
 
 // Footer
 function Footer() {
+  const [year, setYear] = useState(2025)
+
+  useEffect(() => {
+    setYear(new Date().getFullYear())
+  }, [])
+
   return (
     <footer className="py-16 border-t border-gray-200 bg-white">
       <div className="container mx-auto px-6">
         <div className="grid md:grid-cols-4 gap-12 mb-12">
           <div className="md:col-span-2">
             <Link href="/" className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#00F28A] to-[#4BE96A] flex items-center justify-center">
-                <LeafIcon className="w-6 h-6 text-black" />
+              <div className="w-12 h-12 rounded-2xl overflow-hidden">
+                <img src="/logo.png" alt="Agrimater Logo" className="w-full h-full object-contain" />
               </div>
               <span className="text-2xl font-bold text-gray-900">Agrimater</span>
             </Link>
@@ -1076,7 +1682,7 @@ function Footer() {
           </div>
         </div>
         <div className="pt-8 border-t border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-gray-500">© {new Date().getFullYear()} Agrimater. All rights reserved.</p>
+          <p className="text-sm text-gray-500">© {year} Agrimater. All rights reserved.</p>
           <p className="text-sm text-gray-500">Built with care for Bharat's farmers</p>
         </div>
       </div>
@@ -1086,16 +1692,27 @@ function Footer() {
 
 // Main Page
 export default function HomePage() {
+  const [animationState, setAnimationState] = useState<AnimationState>("default")
+  const [animationProgress, setAnimationProgress] = useState(0)
+  const handleAnimationStateChange = useCallback((state: AnimationState) => {
+    setAnimationState((prev) => (prev === state ? prev : state))
+  }, [])
+
   return (
     <main className="relative">
       <Navbar />
       <HeroSection />
       <VisionSection />
-      <FeaturesSection />
-      <ImpactSection />
+      <FeaturesSection
+        animationState={animationState}
+        onAnimationStateChange={handleAnimationStateChange}
+        onProgressChange={setAnimationProgress}
+      />
+      <ImpactSection animationState={animationState} />
       <TeamSection />
       <PartnerSection />
       <Footer />
+      <DeliveryAnimationOverlay animationProgress={animationProgress} />
     </main>
   )
 }

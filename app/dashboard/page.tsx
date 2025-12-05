@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { ProtectedRoute } from "@/components/auth/protected-route"
 import { useAuth } from "@/hooks/use-auth"
 import { GradientButton } from "@/components/ui/gradient-button"
 import {
@@ -21,6 +21,7 @@ import {
   Search,
   ChevronRight,
   Calendar,
+  ArrowLeft,
 } from "lucide-react"
 
 const sidebarItems = [
@@ -53,11 +54,51 @@ const upcomingDeliveries = [
 ]
 
 function DashboardContent() {
-  const { user, logout } = useAuth()
+  const router = useRouter()
+  const { user, logout, isLoading, isAuthenticated } = useAuth()
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push("/login")
+    }
+  }, [isLoading, isAuthenticated, router])
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+            className="w-12 h-12 border-4 border-[#00f28a] border-t-transparent rounded-full mx-auto mb-4"
+          />
+          <p className="text-gray-600 font-medium">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render dashboard if not authenticated
+  if (!isAuthenticated) {
+    return null
+  }
 
   return (
     <div className="min-h-screen bg-background flex">
+      {/* Back Button */}
+      <motion.button
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        onClick={() => router.push("/")}
+        className="fixed top-6 left-6 z-50 flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 backdrop-blur-sm border border-gray-200 hover:border-[#00f28a] text-gray-700 hover:text-gray-900 transition-all shadow-lg hover:shadow-xl"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        <span className="font-medium">Back</span>
+      </motion.button>
+
       {/* Sidebar */}
       <motion.aside
         initial={{ x: -100 }}
@@ -273,9 +314,5 @@ function DashboardContent() {
 }
 
 export default function DashboardPage() {
-  return (
-    <ProtectedRoute>
-      <DashboardContent />
-    </ProtectedRoute>
-  )
+  return <DashboardContent />
 }

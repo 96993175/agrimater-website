@@ -13,19 +13,19 @@ interface GradientButtonProps extends React.ButtonHTMLAttributes<HTMLButtonEleme
 
 const GradientButton = forwardRef<HTMLButtonElement, GradientButtonProps>(
   ({ className, variant = "primary", size = "md", children, ...props }, ref) => {
-    const baseStyles = "relative font-semibold rounded-full transition-all duration-300 overflow-hidden"
+    const baseStyles = "relative font-medium rounded-full transition-all duration-300 ease-out"
 
     const variants = {
       primary:
-        "bg-gradient-to-r from-[#00F28A] to-[#4BE96A] text-[#0a0a0a] hover:shadow-[0_0_30px_rgba(0,242,138,0.5)]",
-      secondary: "bg-foreground/5 text-foreground border border-primary/30 hover:border-primary hover:bg-primary/10",
-      outline: "bg-transparent border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground",
+        "bg-gradient-to-r from-[#00F28A] to-[#4BE96A] text-gray-900 hover:shadow-lg hover:shadow-[#00F28A]/20",
+      secondary: "bg-white text-gray-900 border border-gray-200 hover:border-gray-300 hover:shadow-md",
+      outline: "bg-transparent border border-gray-300 text-gray-700 hover:bg-gray-50",
     }
 
     const sizes = {
-      sm: "px-4 py-2 text-sm",
-      md: "px-6 py-3 text-base",
-      lg: "px-8 py-4 text-lg",
+      sm: "px-5 py-2 text-sm",
+      md: "px-8 py-4 text-base",
+      lg: "px-10 py-5 text-lg",
     }
 
     return (
@@ -33,6 +33,7 @@ const GradientButton = forwardRef<HTMLButtonElement, GradientButtonProps>(
         ref={ref}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
+        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
         className={cn(baseStyles, variants[variant], sizes[size], className)}
         {...props}
       >
