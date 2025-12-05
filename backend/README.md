@@ -26,6 +26,14 @@ Server will run on `http://localhost:5001`
 
 ## Environment Variables
 
+Configure these in Render Dashboard → Environment → Environment Variables:
+
+**Required:**
+- `GROQ_API_KEY` - Your Groq API key for AI chat
+- `GROQ_MODEL` - Model name (e.g., llama-3.1-8b-instant)
+- `MONGODB_URI` - MongoDB connection string
+- `SENDGRID_API_KEY` - SendGrid API key for emails
+- `SENDGRID_FROM` - Email sender address
 - `PORT` - Automatically set by Render (default: 5001)
 
 ## API Endpoints
