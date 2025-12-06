@@ -617,7 +617,7 @@ function DeliveryAnimationOverlay({ animationProgress }: { animationProgress: nu
     return null
   }
 
-  const overlayTransition = { type: "spring", stiffness: 150, damping: 24, mass: 0.6 }
+  const overlayTransition = { type: "spring" as const, stiffness: 150, damping: 24, mass: 0.6 }
   const rotationAngle = animationProgress * 330
 
   return (
