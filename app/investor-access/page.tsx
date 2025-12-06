@@ -207,6 +207,7 @@ export default function InvestorAccessPage() {
           rotate(${rotation}deg) 
           translateY(${verticalBounce}px)
         `
+        
         lottieRef.current.wrapper.style.transition = 'transform 0.08s cubic-bezier(0.4, 0, 0.2, 1)'
         
         // Add pulsing glow effect
