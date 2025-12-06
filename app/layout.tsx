@@ -12,9 +12,10 @@ export const metadata: Metadata = {
   creator: "Agrimater",
   icons: {
     icon: [
-      { url: "/logo.png" },
-      { url: "/icon-light-32x32.png", sizes: "32x32" },
+      { url: "/logo.png", type: "image/png" },
+      { url: "/icon-light-32x32.png", sizes: "32x32", type: "image/png" },
     ],
+    shortcut: "/logo.png",
     apple: "/apple-icon.png",
   },
   openGraph: {
