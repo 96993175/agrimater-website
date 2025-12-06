@@ -61,11 +61,10 @@ export default function InvestorAccessPage() {
     // Say "Namaskar" when page loads using TTS server (only once)
     if (!hasPlayedWelcome.current) {
       hasPlayedWelcome.current = true
-      setTimeout(async () => {
-        const welcomeMsg = "Namaskar! I am Agrimater AI assistant. How can I help you today?"
-        setResponse(welcomeMsg)
-        await speakText(welcomeMsg)
-      }, 1000)
+      // Start immediately without delay
+      const welcomeMsg = "Namaskar! I am Agrimater AI assistant. How can I help you today?"
+      setResponse(welcomeMsg)
+      speakText(welcomeMsg)
     }
 
     return () => {
@@ -92,17 +91,24 @@ export default function InvestorAccessPage() {
     setIsSpeaking(true)
     
     try {
-      // Try OpenVoice server first
+      // Try OpenVoice server first with timeout
       const ttsServerUrl = process.env.NEXT_PUBLIC_TTS_SERVER_URL || "http://localhost:5001"
       
       try {
+        // Add timeout to prevent long waits
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
+        
         const response = await fetch(`${ttsServerUrl}/api/tts`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ text }),
+          signal: controller.signal,
         })
+        
+        clearTimeout(timeoutId)
 
         if (response.ok) {
           const audioBlob = await response.blob()
@@ -110,8 +116,11 @@ export default function InvestorAccessPage() {
           const audio = new Audio(audioUrl)
           currentAudioRef.current = audio
           
-          // Start animation immediately when TTS begins
-          startTalkingAnimation()
+          // Only start animation when audio actually starts playing
+          audio.onplay = () => {
+            startTalkingAnimation()
+            setupAudioAnalysis(audio)
+          }
           
           audio.onended = () => {
             setIsSpeaking(false)
@@ -135,11 +144,6 @@ export default function InvestorAccessPage() {
             fallbackToSpeechSynthesis(text)
           }
 
-          // Setup audio analysis after starting to play for real-time sync
-          audio.onplay = () => {
-            setupAudioAnalysis(audio)
-          }
-
           await audio.play()
           return
         }
@@ -156,39 +160,59 @@ export default function InvestorAccessPage() {
   }
 
   const startTalkingAnimation = () => {
-    // Start basic talking animation immediately
+    // Start enhanced talking animation with multiple movements
     if (!lottieRef.current) return
     
     let scale = 1
+    let rotation = 0
     let direction = 1
     let frameCount = 0
+    let pulsePhase = 0
     
     const basicAnimate = () => {
       if (!lottieRef.current?.wrapper) return
       
-      // Create realistic speech pattern
       frameCount++
+      pulsePhase += 0.1
       
-      // Vary the animation speed and intensity
-      if (frameCount % 3 === 0) {
-        scale += direction * 0.015
+      // Create realistic speech pattern with multiple movements
+      if (frameCount % 2 === 0) {
+        // Scale animation - main talking motion
+        scale += direction * 0.025
         
-        // Random variation for natural feel
-        if (Math.random() > 0.7) {
-          scale += (Math.random() - 0.5) * 0.02
+        // Add random variation for natural feel
+        if (Math.random() > 0.6) {
+          scale += (Math.random() - 0.5) * 0.03
         }
         
-        // Bounce between 0.92 and 1.12 for visible mouth movement
-        if (scale > 1.12) {
-          scale = 1.12
+        // Bounce between 0.88 and 1.18 for more visible movement
+        if (scale > 1.18) {
+          scale = 1.18
           direction = -1
-        } else if (scale < 0.92) {
-          scale = 0.92
+        } else if (scale < 0.88) {
+          scale = 0.88
           direction = 1
         }
         
-        lottieRef.current.wrapper.style.transform = `scale(${scale})`
-        lottieRef.current.wrapper.style.transition = 'transform 0.05s ease-in-out'
+        // Add subtle rotation for more dynamic feel
+        rotation = Math.sin(pulsePhase * 0.5) * 3 // Rotate ±3 degrees
+        
+        // Add vertical bounce for emphasis
+        const verticalBounce = Math.sin(pulsePhase) * 2 // Move ±2px
+        
+        // Combine all transformations
+        lottieRef.current.wrapper.style.transform = `
+          scale(${scale}) 
+          rotate(${rotation}deg) 
+          translateY(${verticalBounce}px)
+        `
+        lottieRef.current.wrapper.style.transition = 'transform 0.08s cubic-bezier(0.4, 0, 0.2, 1)'
+        
+        // Add pulsing glow effect
+        if (lottieRef.current.wrapper.parentElement) {
+          const glowIntensity = 0.5 + (scale - 0.88) / 0.3 * 0.5 // 0.5 to 1
+          lottieRef.current.wrapper.parentElement.style.filter = `drop-shadow(0 0 ${glowIntensity * 30}px rgba(0, 242, 138, ${glowIntensity * 0.4}))`
+        }
       }
       
       animationFrameRef.current = requestAnimationFrame(basicAnimate)
