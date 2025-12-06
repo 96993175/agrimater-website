@@ -459,7 +459,7 @@ function HeroSection() {
                 hidden: { opacity: 0, y: 20 },
                 visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
               }}
-              className="flex flex-col sm:flex-row items-start gap-5 mt-6"
+              className="flex flex-col sm:flex-row items-center sm:items-start gap-5 mt-6"
             >
               <CTAButton
                 label="Join as a Farmer"
@@ -483,7 +483,7 @@ function HeroSection() {
               hidden: { opacity: 0, x: 60 },
               visible: { opacity: 1, x: 0, transition: { duration: 0.9, ease: "easeOut" } }
             }}
-            className="relative flex items-center justify-center"
+            className="relative flex items-center justify-center mx-auto md:mx-0"
           >
             {/* Logo container with subtle parallax */}
             <motion.div 
