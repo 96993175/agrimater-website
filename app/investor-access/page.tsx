@@ -371,16 +371,22 @@ export default function InvestorAccessPage() {
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-[#4BE96A]/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
 
         {/* Back Button */}
-        <Link href="/">
-          <motion.button
-            whileHover={{ scale: 1.05, x: -5 }}
-            whileTap={{ scale: 0.95 }}
-            className="absolute top-8 left-8 z-20 flex items-center gap-2 px-6 py-3 rounded-full bg-white/80 backdrop-blur-sm border border-gray-200 text-gray-700 hover:text-gray-900 hover:border-[#00F28A]/30 transition-all duration-300 shadow-lg"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="font-semibold">Back to Home</span>
-          </motion.button>
-        </Link>
+        <div className="absolute top-0 left-0 right-0 z-50 px-4 md:px-6 py-6">
+          <div className="container mx-auto max-w-7xl">
+            <Link href="/">
+              <motion.button
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                whileHover={{ scale: 1.05, x: -5 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex items-center gap-2 px-6 py-3 rounded-full bg-white/80 backdrop-blur-sm border border-gray-200 text-gray-700 hover:text-gray-900 hover:border-[#00F28A]/30 transition-all duration-300 shadow-lg"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span className="font-semibold">Back to Home</span>
+              </motion.button>
+            </Link>
+          </div>
+        </div>
 
         {/* Main Content */}
         <div className="container mx-auto px-6 relative z-10 max-w-5xl">

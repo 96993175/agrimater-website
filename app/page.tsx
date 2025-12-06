@@ -358,30 +358,176 @@ function Navbar() {
 
       {mobileOpen && (
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="md:hidden absolute top-full left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-gray-100 p-6"
+          initial={{ opacity: 0, height: 0, scale: 0.95 }}
+          animate={{ opacity: 1, height: "auto", scale: 1 }}
+          exit={{ opacity: 0, height: 0, scale: 0.95 }}
+          transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+          className="md:hidden absolute top-full left-0 right-0 overflow-hidden origin-top"
         >
-          <div className="flex flex-col gap-4">
-            {["Vision", "Features", "Impact", "Team", "Partner"].map((item) => (
-              <a
-                key={item}
-                href={`#${item.toLowerCase()}`}
-                onClick={() => setMobileOpen(false)}
-                className="text-gray-600 hover:text-gray-900 font-medium py-2"
+          <motion.div 
+            initial={{ y: -20 }}
+            animate={{ y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="relative bg-gradient-to-br from-white via-emerald-50/30 to-white backdrop-blur-xl border-t border-gray-100 shadow-2xl"
+          >
+            {/* Decorative gradient overlay */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.6 }}
+              className="absolute inset-0 bg-gradient-to-r from-[#00F28A]/5 via-transparent to-[#4BE96A]/5 pointer-events-none" 
+            />
+            
+            {/* Animated background elements */}
+            <motion.div 
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.3, duration: 0.6, ease: "easeOut" }}
+              className="absolute top-0 right-0 w-32 h-32 bg-[#00F28A]/10 rounded-full blur-3xl" 
+            />
+            <motion.div 
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.6, ease: "easeOut" }}
+              className="absolute bottom-0 left-0 w-32 h-32 bg-[#4BE96A]/10 rounded-full blur-3xl" 
+            />
+            
+            <div className="relative flex flex-col gap-2 p-6">
+              {/* Logo section in mobile menu */}
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1, duration: 0.4 }}
+                className="flex items-center gap-3 pb-4 mb-4 border-b border-gray-200/50"
               >
-                {item}
-              </a>
-            ))}
-            <Link href="/login" className="text-gray-600 hover:text-gray-900 font-medium py-2">
-              Login
-            </Link>
-            <Link href="/farmer-onboarding">
-              <button className="w-full px-6 py-3 rounded-full bg-gradient-to-r from-[#00F28A] to-[#4BE96A] text-black font-semibold">
-                Get Started
-              </button>
-            </Link>
-          </div>
+                <motion.div 
+                  initial={{ rotate: -180, scale: 0 }}
+                  animate={{ rotate: 0, scale: 1 }}
+                  transition={{ delay: 0.2, duration: 0.5, type: "spring", stiffness: 200 }}
+                  className="w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-br from-[#00F28A] to-[#4BE96A] p-0.5"
+                >
+                  <div className="w-full h-full bg-white rounded-[0.65rem] flex items-center justify-center">
+                    <img src="/logo.png" alt="Agrimater" className="w-8 h-8 object-contain" />
+                  </div>
+                </motion.div>
+                <motion.span 
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3, duration: 0.4 }}
+                  className="text-lg font-bold bg-gradient-to-r from-[#00F28A] to-[#4BE96A] bg-clip-text text-transparent"
+                >
+                  Agrimater
+                </motion.span>
+              </motion.div>
+              
+              {/* Navigation items */}
+              {["Vision", "Features", "Impact", "Team", "Partner"].map((item, index) => (
+                <motion.a
+                  key={item}
+                  href={`#${item.toLowerCase()}`}
+                  onClick={() => setMobileOpen(false)}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.15 + index * 0.08, duration: 0.4, ease: "easeOut" }}
+                  whileHover={{ x: 4, scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="group relative py-3 px-4 rounded-xl hover:bg-gradient-to-r hover:from-[#00F28A]/10 hover:to-[#4BE96A]/10 transition-all duration-300"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-700 group-hover:text-gray-900 font-semibold transition-colors">
+                      {item}
+                    </span>
+                    <ChevronDownIcon className="w-4 h-4 text-gray-400 group-hover:text-[#00F28A] transform -rotate-90 group-hover:translate-x-1 transition-all duration-300" />
+                  </div>
+                  <motion.div 
+                    initial={{ scaleY: 0 }}
+                    whileHover={{ scaleY: 1 }}
+                    transition={{ duration: 0.3 }}
+                    className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#00F28A] to-[#4BE96A] origin-top rounded-r-full"
+                  />
+                </motion.a>
+              ))}
+              
+              {/* Divider */}
+              <motion.div 
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
+                className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent my-2 origin-center"
+              />
+              
+              {/* Login link */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.55, duration: 0.4 }}
+              >
+                <Link 
+                  href="/login" 
+                  onClick={() => setMobileOpen(false)}
+                  className="group block"
+                >
+                  <motion.div
+                    whileHover={{ x: 4, scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="py-3 px-4 rounded-xl hover:bg-gradient-to-r hover:from-[#00F28A]/10 hover:to-[#4BE96A]/10 transition-all duration-300"
+                  >
+                    <div className="flex items-center gap-3">
+                      <motion.div 
+                        whileHover={{ rotate: 360 }}
+                        transition={{ duration: 0.6 }}
+                        className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#00F28A]/20 to-[#4BE96A]/20 flex items-center justify-center"
+                      >
+                        <svg className="w-4 h-4 text-[#00F28A]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      </motion.div>
+                      <span className="text-gray-700 group-hover:text-gray-900 font-semibold">Login</span>
+                    </div>
+                  </motion.div>
+                </Link>
+              </motion.div>
+              
+              {/* Get Started button */}
+              <motion.div
+                initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ delay: 0.6, duration: 0.5, type: "spring", stiffness: 200 }}
+                className="mt-4"
+              >
+                <Link href="/farmer-onboarding" onClick={() => setMobileOpen(false)}>
+                  <motion.button 
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="relative w-full px-6 py-4 rounded-2xl overflow-hidden group"
+                  >
+                    <motion.div 
+                      className="absolute inset-0 bg-gradient-to-r from-[#00F28A] to-[#4BE96A]"
+                      animate={{ 
+                        backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+                      }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                    />
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      whileHover={{ opacity: 1 }}
+                      className="absolute inset-0 bg-gradient-to-r from-[#00F28A] to-[#4BE96A] blur-xl"
+                      transition={{ duration: 0.3 }}
+                    />
+                    <div className="relative flex items-center justify-center gap-2">
+                      <span className="text-black font-bold text-lg">Get Started</span>
+                      <motion.div
+                        animate={{ x: [0, 4, 0] }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                      >
+                        <ArrowRightIcon className="w-5 h-5 text-black" />
+                      </motion.div>
+                    </div>
+                  </motion.button>
+                </Link>
+              </motion.div>
+            </div>
+          </motion.div>
         </motion.div>
       )}
     </motion.header>
@@ -731,7 +877,7 @@ function VisionSection() {
             </div>
             
             {/* "The" text at left corner */}
-            <div className="absolute left-0 top-0 left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 sm:-translate-x-[12vw] md:-translate-x-[14vw] lg:-translate-x-[15vw] -translate-y-[25] sm:-translate-y-[6vw] md:-translate-y-[5.5vw]">
+            <div className="absolute left-0 top-0 left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 sm:-translate-x-[12vw] md:-translate-x-[14vw] lg:-translate-x-[15vw] -translate-y-[15vw] sm:-translate-y-[6vw] md:-translate-y-[5.5vw]">
               <h3 className="text-[8vw] sm:text-[7vw] md:text-[6vw] lg:text-6xl font-bold text-gray-900">The</h3>
             </div>
             
@@ -923,6 +1069,33 @@ function ImpactSection({ animationState }: { animationState: AnimationState }) {
   const ref = useRef<HTMLDivElement>(null)
   const isInView = useInView(ref, { once: true, margin: "-100px" })
   const isAnchoredState = animationState === "anchored"
+  const [mapError, setMapError] = useState(false)
+  const [retryCount, setRetryCount] = useState(0)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+
+  const handleMapLoad = () => {
+    setMapError(false)
+  }
+
+  const handleMapError = () => {
+    if (retryCount < 3) {
+      // Retry loading the map
+      setTimeout(() => {
+        setRetryCount(prev => prev + 1)
+        if (iframeRef.current) {
+          const src = iframeRef.current.src
+          iframeRef.current.src = ''
+          setTimeout(() => {
+            if (iframeRef.current) {
+              iframeRef.current.src = src
+            }
+          }, 100)
+        }
+      }, 2000)
+    } else {
+      setMapError(true)
+    }
+  }
 
   return (
     <section id="impact" ref={ref} className="py-16 md:py-32 relative overflow-hidden bg-white mt-0 md:mt-16">
@@ -994,16 +1167,36 @@ function ImpactSection({ animationState }: { animationState: AnimationState }) {
               {/* Map container */}
               <div className="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl bg-white p-1">
                 <div className="relative w-full h-full rounded-[1.25rem] overflow-hidden">
-                  <iframe
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3781.7891234567890!2d73.6868!3d18.5912!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2sHinjewadi%20Phase%201%2C%20Pune!5e0!3m2!1sen!2sin!4v1234567890"
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    allowFullScreen
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                    className="absolute inset-0"
-                  />
+                  {mapError ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-white p-6 text-center">
+                      <MapPinIcon className="w-16 h-16 text-gray-300 mb-4" />
+                      <p className="text-gray-600 font-semibold mb-2">Map temporarily unavailable</p>
+                      <p className="text-sm text-gray-500 mb-4">Hinjewadi Phase 1, Pune, Maharashtra</p>
+                      <button
+                        onClick={() => {
+                          setMapError(false)
+                          setRetryCount(0)
+                        }}
+                        className="px-4 py-2 bg-[#00F28A] text-black rounded-full text-sm font-semibold hover:bg-[#4BE96A] transition-colors"
+                      >
+                        Retry Loading Map
+                      </button>
+                    </div>
+                  ) : (
+                    <iframe
+                      ref={iframeRef}
+                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3781.7891234567890!2d73.6868!3d18.5912!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2sHinjewadi%20Phase%201%2C%20Pune!5e0!3m2!1sen!2sin!4v1234567890"
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      allowFullScreen
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      className="absolute inset-0"
+                      onLoad={handleMapLoad}
+                      onError={handleMapError}
+                    />
+                  )}
                 </div>
               </div>
               
