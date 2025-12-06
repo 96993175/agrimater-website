@@ -1,7 +1,7 @@
 // MongoDB connection for production
 import { MongoClient } from 'mongodb'
 
-import type { Contact, Farmer, Retailer, User } from "./types"
+import type { Contact, Farmer, Retailer, User, Conversation, ConversationMessage } from "./types"
 
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://om67156715_db_user:XMW6gKsdPzS49mVe@cluster0.xhatnbd.mongodb.net/?appName=Cluster0"
 const DB_NAME = "agrimater"
@@ -221,6 +221,68 @@ export const db = {
         return await db.collection('users').findOne({ email })
       } catch (error) {
         return users.find((u) => u.email === email)
+      }
+    },
+  },
+  
+  conversations: {
+    create: async (data: Omit<Conversation, "id" | "createdAt" | "updatedAt">) => {
+      try {
+        const { db } = await connectToDatabase()
+        const conversation: Conversation = {
+          ...data,
+          id: generateId(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }
+        await db.collection('conversations').insertOne(conversation)
+        return conversation
+      } catch (error) {
+        console.error('MongoDB error creating conversation:', error)
+        throw error
+      }
+    },
+    
+    findBySessionId: async (sessionId: string) => {
+      try {
+        const { db } = await connectToDatabase()
+        return await db.collection('conversations').findOne({ sessionId })
+      } catch (error) {
+        console.error('MongoDB error finding conversation:', error)
+        return null
+      }
+    },
+    
+    addMessage: async (sessionId: string, message: ConversationMessage) => {
+      try {
+        const { db } = await connectToDatabase()
+        await db.collection('conversations').updateOne(
+          { sessionId },
+          { 
+            $push: { messages: message },
+            $set: { updatedAt: new Date() }
+          }
+        )
+        return true
+      } catch (error) {
+        console.error('MongoDB error adding message:', error)
+        return false
+      }
+    },
+    
+    getRecentMessages: async (sessionId: string, limit: number = 5) => {
+      try {
+        const { db } = await connectToDatabase()
+        const conversation = await db.collection('conversations').findOne({ sessionId })
+        if (!conversation || !conversation.messages) return []
+        
+        // Get last N conversations (user message + assistant response = 1 conversation)
+        const messages = conversation.messages
+        const recentMessages = messages.slice(-limit * 2) // Get last N pairs of messages
+        return recentMessages
+      } catch (error) {
+        console.error('MongoDB error getting recent messages:', error)
+        return []
       }
     },
   },

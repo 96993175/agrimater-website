@@ -15,6 +15,7 @@ export default function InvestorAccessPage() {
   const [response, setResponse] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
+  const [sessionId, setSessionId] = useState<string>("")
   const recognitionRef = useRef<any>(null)
   const synthRef = useRef<SpeechSynthesis | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
@@ -22,6 +23,34 @@ export default function InvestorAccessPage() {
   const animationFrameRef = useRef<number | null>(null)
   const hasPlayedWelcome = useRef(false)
   const currentAudioRef = useRef<HTMLAudioElement | null>(null)
+
+  // Language detection function
+  const detectLanguage = (text: string): string => {
+    // Hindi detection
+    if (/[\u0900-\u097F]/.test(text)) return 'hi'
+    // Marathi detection
+    if (/[\u0900-\u097F]/.test(text) && /ा|ी|ू|े|ै|ो|ौ/.test(text)) return 'mr'
+    // Tamil detection
+    if (/[\u0B80-\u0BFF]/.test(text)) return 'ta'
+    // Telugu detection
+    if (/[\u0C00-\u0C7F]/.test(text)) return 'te'
+    // Bengali detection
+    if (/[\u0980-\u09FF]/.test(text)) return 'bn'
+    // Gujarati detection
+    if (/[\u0A80-\u0AFF]/.test(text)) return 'gu'
+    // Kannada detection
+    if (/[\u0C80-\u0CFF]/.test(text)) return 'kn'
+    // Spanish detection
+    if (/[áéíóúñ¿¡]/i.test(text)) return 'es'
+    // French detection
+    if (/[àâæçéèêëïîôùûüÿœ]/i.test(text)) return 'fr'
+    // German detection
+    if (/[äöüß]/i.test(text)) return 'de'
+    // Chinese detection
+    if (/[\u4E00-\u9FFF]/.test(text)) return 'zh'
+    // Default to English
+    return 'en'
+  }
 
   useEffect(() => {
     if (lottieRef.current) {
@@ -32,6 +61,48 @@ export default function InvestorAccessPage() {
     if (typeof window !== "undefined") {
       synthRef.current = window.speechSynthesis
     }
+
+    // Initialize or get session ID
+    const initializeSession = async () => {
+      let sid = localStorage.getItem("agrimater_session_id")
+      if (!sid) {
+        sid = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        localStorage.setItem("agrimater_session_id", sid)
+      }
+      setSessionId(sid)
+
+      // Load conversation history and create personalized welcome
+      try {
+        const historyResponse = await fetch(`/api/conversation?sessionId=${sid}&limit=5`)
+        if (historyResponse.ok) {
+          const { messages } = await historyResponse.json()
+          
+          let welcomeMsg = "Namaskar! I am Agrimater AI assistant. How can I help you today?"
+          
+          // If user has previous conversations, personalize the welcome
+          if (messages && messages.length > 0) {
+            welcomeMsg = "Welcome back! I remember our previous conversation. How can I assist you today?"
+          }
+          
+          if (!hasPlayedWelcome.current) {
+            hasPlayedWelcome.current = true
+            setResponse(welcomeMsg)
+            speakText(welcomeMsg)
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load conversation history:", error)
+        // Use default welcome message on error
+        if (!hasPlayedWelcome.current) {
+          hasPlayedWelcome.current = true
+          const welcomeMsg = "Namaskar! I am Agrimater AI assistant. How can I help you today?"
+          setResponse(welcomeMsg)
+          speakText(welcomeMsg)
+        }
+      }
+    }
+
+    initializeSession()
 
     // Initialize speech recognition
     if (typeof window !== "undefined" && "webkitSpeechRecognition" in window) {
@@ -56,15 +127,6 @@ export default function InvestorAccessPage() {
       recognitionRef.current.onend = () => {
         setIsListening(false)
       }
-    }
-
-    // Say "Namaskar" when page loads using TTS server (only once)
-    if (!hasPlayedWelcome.current) {
-      hasPlayedWelcome.current = true
-      // Start immediately without delay
-      const welcomeMsg = "Namaskar! I am Agrimater AI assistant. How can I help you today?"
-      setResponse(welcomeMsg)
-      speakText(welcomeMsg)
     }
 
     return () => {
@@ -140,22 +202,168 @@ export default function InvestorAccessPage() {
             stopTalkingAnimation()
             URL.revokeObjectURL(audioUrl)
             currentAudioRef.current = null
-            console.error("Audio playback error, falling back to browser TTS")
-            fallbackToSpeechSynthesis(text)
+            console.error("Audio playback error, trying Azure TTS fallback")
+            tryAzureTTS(text)
           }
 
           await audio.play()
           return
         }
       } catch (error) {
-        console.log("OpenVoice server not available, using browser TTS:", error)
+        console.log("OpenVoice server not available, trying Azure TTS:", error)
       }
 
-      // Fallback to browser TTS
-      fallbackToSpeechSynthesis(text)
+      // Try Azure TTS as fallback
+      await tryAzureTTS(text)
     } catch (error) {
       console.error("TTS error:", error)
       setIsSpeaking(false)
+    }
+  }
+
+  const tryAzureTTS = async (text: string) => {
+    // Use Microsoft Edge TTS voices through browser Speech Synthesis API
+    // This is free and built-in, no API key needed with multilingual support
+    try {
+      if (!synthRef.current) {
+        fallbackToSpeechSynthesis(text)
+        return
+      }
+
+      // Detect language from text
+      const detectedLang = detectLanguage(text)
+      console.log("Detected language:", detectedLang)
+
+      // Wait for voices to be loaded
+      let voices = synthRef.current.getVoices()
+      
+      if (voices.length === 0) {
+        // Voices not loaded yet, wait for them
+        await new Promise<void>((resolve) => {
+          synthRef.current!.onvoiceschanged = () => {
+            resolve()
+          }
+          // Timeout after 1 second
+          setTimeout(resolve, 1000)
+        })
+        voices = synthRef.current.getVoices()
+      }
+
+      // Try to find Microsoft Edge voices (high quality, neural) for detected language
+      const edgeVoices = voices.filter(voice => 
+        voice.name.includes('Microsoft') && 
+        voice.lang.startsWith(detectedLang)
+      )
+      
+      // Define preferred voices for different languages
+      const languageVoices: { [key: string]: string[] } = {
+        'en': [
+          'Microsoft Jenny Online (Natural) - English (United States)',
+          'Microsoft Aria Online (Natural) - English (United States)',
+          'Microsoft Guy Online (Natural) - English (United States)',
+        ],
+        'hi': [
+          'Microsoft Swara Online (Natural) - Hindi (India)',
+          'Microsoft Madhur Online (Natural) - Hindi (India)',
+        ],
+        'mr': [
+          'Microsoft Aarohi Online (Natural) - Marathi (India)',
+        ],
+        'ta': [
+          'Microsoft Pallavi Online (Natural) - Tamil (India)',
+        ],
+        'te': [
+          'Microsoft Shruti Online (Natural) - Telugu (India)',
+        ],
+        'bn': [
+          'Microsoft Bashkar Online (Natural) - Bangla (India)',
+        ],
+        'gu': [
+          'Microsoft Dhwani Online (Natural) - Gujarati (India)',
+        ],
+        'kn': [
+          'Microsoft Gagan Online (Natural) - Kannada (India)',
+        ],
+        'es': [
+          'Microsoft Elvira Online (Natural) - Spanish (Spain)',
+        ],
+        'fr': [
+          'Microsoft Denise Online (Natural) - French (France)',
+        ],
+        'de': [
+          'Microsoft Katja Online (Natural) - German (Germany)',
+        ],
+        'zh': [
+          'Microsoft Xiaoxiao Online (Natural) - Chinese (Mainland)',
+        ],
+      }
+      
+      const preferredVoices = languageVoices[detectedLang] || languageVoices['en']
+      let selectedVoice = null
+      
+      for (const preferred of preferredVoices) {
+        selectedVoice = edgeVoices.find(v => v.name === preferred)
+        if (selectedVoice) break
+      }
+      
+      // If no preferred voice, use any Microsoft voice for that language
+      if (!selectedVoice && edgeVoices.length > 0) {
+        selectedVoice = edgeVoices[0]
+      }
+      
+      // If still no Microsoft voice for that language, try English
+      if (!selectedVoice) {
+        const englishVoices = voices.filter(voice => 
+          voice.name.includes('Microsoft') && 
+          voice.lang.startsWith('en')
+        )
+        selectedVoice = englishVoices[0] || voices.find(v => v.lang.startsWith(detectedLang))
+      }
+      
+      // Final fallback to any available voice
+      if (!selectedVoice) {
+        console.log("No Microsoft Edge voices available, using standard browser TTS")
+        fallbackToSpeechSynthesis(text)
+        return
+      }
+
+      // Use the selected Microsoft Edge voice
+      synthRef.current.cancel()
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.voice = selectedVoice
+      utterance.lang = selectedVoice.lang
+      utterance.rate = 0.95
+      utterance.pitch = 1
+      utterance.volume = 1
+
+      utterance.onstart = () => {
+        setIsSpeaking(true)
+        startTalkingAnimation()
+      }
+
+      utterance.onend = () => {
+        setIsSpeaking(false)
+        stopTalkingAnimation()
+        // Auto-start listening after AI finishes speaking
+        setTimeout(() => {
+          startListening()
+        }, 500)
+      }
+
+      utterance.onerror = (error) => {
+        console.error("Edge TTS error:", error)
+        setIsSpeaking(false)
+        stopTalkingAnimation()
+        fallbackToSpeechSynthesis(text)
+      }
+
+      console.log("Using Microsoft Edge voice:", selectedVoice.name)
+      synthRef.current.speak(utterance)
+
+    } catch (error) {
+      console.error("Edge TTS error:", error)
+      // Final fallback to standard browser TTS
+      fallbackToSpeechSynthesis(text)
     }
   }
 
@@ -207,7 +415,7 @@ export default function InvestorAccessPage() {
           rotate(${rotation}deg) 
           translateY(${verticalBounce}px)
         `
-        
+
         lottieRef.current.wrapper.style.transition = 'transform 0.08s cubic-bezier(0.4, 0, 0.2, 1)'
         
         // Add pulsing glow effect
@@ -298,8 +506,23 @@ export default function InvestorAccessPage() {
   const fallbackToSpeechSynthesis = (text: string) => {
     if (synthRef.current) {
       synthRef.current.cancel()
+      
+      // Detect language for fallback
+      const detectedLang = detectLanguage(text)
+      const langCode = detectedLang === 'hi' ? 'hi-IN' : 
+                       detectedLang === 'mr' ? 'mr-IN' :
+                       detectedLang === 'ta' ? 'ta-IN' :
+                       detectedLang === 'te' ? 'te-IN' :
+                       detectedLang === 'bn' ? 'bn-IN' :
+                       detectedLang === 'gu' ? 'gu-IN' :
+                       detectedLang === 'kn' ? 'kn-IN' :
+                       detectedLang === 'es' ? 'es-ES' :
+                       detectedLang === 'fr' ? 'fr-FR' :
+                       detectedLang === 'de' ? 'de-DE' :
+                       detectedLang === 'zh' ? 'zh-CN' : 'en-US'
+      
       const utterance = new SpeechSynthesisUtterance(text)
-      utterance.lang = "en-US"
+      utterance.lang = langCode
       utterance.rate = 0.9
       utterance.pitch = 1
       utterance.volume = 1
@@ -328,6 +551,12 @@ export default function InvestorAccessPage() {
       setTranscript("")
       setResponse("")
       setIsListening(true)
+      
+      // Try to detect user's language preference from previous interactions
+      // For now, support multiple languages by allowing auto-detection
+      // Note: Browser speech recognition has limited multilingual support
+      recognitionRef.current.lang = "en-US" // Primary language
+      
       recognitionRef.current.start()
     }
   }
@@ -351,6 +580,7 @@ export default function InvestorAccessPage() {
         },
         body: JSON.stringify({
           message: text,
+          sessionId: sessionId,
         }),
       })
 

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
+import { db } from "@/lib/db"
+import type { ConversationMessage } from "@/lib/types"
 
 // Groq supported models - use exact names from Groq API
 const DEFAULT_MODEL = process.env.GROQ_MODEL || "llama-3.1-8b-instant"
@@ -11,8 +13,8 @@ export async function POST(request: NextRequest) {
   })
 
   try {
-    const { message } = await request.json()
-    console.log("[/api/chat] Received message:", message)
+    const { message, sessionId } = await request.json()
+    console.log("[/api/chat] Received message:", message, "sessionId:", sessionId)
 
     if (!message) {
       console.error("[/api/chat] Error: Missing message in request body")
@@ -24,16 +26,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Server misconfiguration" }, { status: 500 })
     }
 
+    // Get conversation history if sessionId is provided
+    let conversationHistory: any[] = []
+    if (sessionId) {
+      const recentMessages = await db.conversations.getRecentMessages(sessionId, 5)
+      conversationHistory = recentMessages.map((msg: ConversationMessage) => ({
+        role: msg.role,
+        content: msg.content
+      }))
+      console.log("[/api/chat] Loaded conversation history:", conversationHistory.length, "messages")
+    }
+
     let model = DEFAULT_MODEL
     console.log("[/api/chat] Using model:", model)
+
+    // Build context from conversation history
+    let contextPrompt = "You are Agrimater AI assistant. You help people understand Agrimater's mission to transform India's agricultural supply chain with AI-powered transparency, verification, and logistics. Keep responses concise, friendly, and under 3 sentences. ALWAYS respond in English only, regardless of the user's language. Use natural pauses with commas, periods, and proper punctuation to make speech sound realistic and conversational."
+    
+    if (conversationHistory.length > 0) {
+      contextPrompt += "\n\nPrevious conversation context:\n"
+      conversationHistory.forEach((msg: any) => {
+        contextPrompt += `${msg.role === 'user' ? 'User' : 'You'}: ${msg.content}\n`
+      })
+      contextPrompt += "\nUse this context to provide personalized and contextual responses. Reference past discussions when relevant."
+    }
 
     const groqRequestBody = {
       model,
       messages: [
         {
           role: "system",
-          content:
-            "You are Agrimater AI assistant. You help people understand Agrimater's mission to transform India's agricultural supply chain with AI-powered transparency, verification, and logistics. Keep responses concise, friendly, and under 3 sentences. ALWAYS respond in English only, regardless of the user's language. Use natural pauses with commas, periods, and proper punctuation to make speech sound realistic and conversational.",
+          content: contextPrompt,
         },
         {
           role: "user",
@@ -106,6 +129,39 @@ export async function POST(request: NextRequest) {
     if (!aiResponse) {
       console.error("[/api/chat] Unexpected API response:", data)
       return NextResponse.json({ error: "Invalid API response", details: data }, { status: 500 })
+    }
+
+    // Save conversation to database if sessionId is provided
+    if (sessionId) {
+      try {
+        // Ensure conversation exists
+        const existingConversation = await db.conversations.findBySessionId(sessionId)
+        if (!existingConversation) {
+          await db.conversations.create({
+            sessionId,
+            messages: [],
+          })
+        }
+
+        // Save user message
+        await db.conversations.addMessage(sessionId, {
+          role: "user",
+          content: message,
+          timestamp: new Date(),
+        })
+
+        // Save assistant response
+        await db.conversations.addMessage(sessionId, {
+          role: "assistant",
+          content: aiResponse,
+          timestamp: new Date(),
+        })
+
+        console.log("[/api/chat] Conversation saved to database")
+      } catch (dbError) {
+        console.error("[/api/chat] Failed to save conversation:", dbError)
+        // Don't fail the request if DB save fails
+      }
     }
 
     console.log("[/api/chat] Success - AI Response:", aiResponse.substring(0, 100) + "...")

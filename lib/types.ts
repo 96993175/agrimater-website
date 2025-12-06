@@ -53,3 +53,18 @@ export interface AuthToken {
   userType: string
   exp: number
 }
+
+export interface ConversationMessage {
+  role: "user" | "assistant"
+  content: string
+  timestamp: Date
+}
+
+export interface Conversation {
+  id: string
+  userId?: string
+  sessionId: string
+  messages: ConversationMessage[]
+  createdAt: Date
+  updatedAt: Date
+}
