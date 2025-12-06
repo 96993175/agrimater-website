@@ -419,7 +419,7 @@ function HeroSection() {
             }}
             className="flex flex-col justify-center space-y-8"
           >
-            <motion.h1 className="text-5xl sm:text-[4.765rem] md:text-[5.445rem] font-bold text-gray-900 mb-6 tracking-tight leading-[1.05]">
+            <motion.h1 className="text-[2.2rem] sm:text-[3.2rem] md:text-[5.445rem] font-bold text-gray-900 mb-6 tracking-tight leading-[1.1] md:leading-[1.05]">
               <motion.span
                 initial={{ opacity: 0, x: -100 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -984,7 +984,7 @@ function ImpactSection({ animationState }: { animationState: AnimationState }) {
             transition={{ duration: 1 }}
             className="relative order-2 lg:order-2 mt-16 lg:mt-16"
           >
-            <div className="relative aspect-square max-w-lg mx-auto min-h-[350px] sm:min-h-[400px]">
+            <div className="relative aspect-square max-w-lg mx-auto md:aspect-square aspect-[4/5]">
               {/* Outer glow effect */}
               <div className="absolute -inset-4 bg-gradient-to-r from-[#00F28A]/20 via-[#4BE96A]/20 to-[#00F28A]/20 rounded-[2rem] blur-2xl opacity-70" />
               
@@ -993,16 +993,16 @@ function ImpactSection({ animationState }: { animationState: AnimationState }) {
               
               {/* Map container */}
               <div className="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl bg-white p-1">
-                <div className="relative w-full h-full rounded-[1.25rem] overflow-hidden min-h-[340px] sm:min-h-[390px]">
+                <div className="relative w-full h-full rounded-[1.25rem] overflow-hidden">
                   <iframe
                     src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3781.7891234567890!2d73.6868!3d18.5912!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2sHinjewadi%20Phase%201%2C%20Pune!5e0!3m2!1sen!2sin!4v1234567890"
                     width="100%"
                     height="100%"
-                    style={{ border: 0, minHeight: '340px' }}
+                    style={{ border: 0 }}
                     allowFullScreen
-                    loading="lazy"
+                    loading="eager"
                     referrerPolicy="no-referrer-when-downgrade"
-                    className="absolute inset-0 w-full h-full"
+                    className="absolute inset-0 min-h-[280px] sm:min-h-[340px]"
                   />
                 </div>
               </div>
