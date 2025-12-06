@@ -617,7 +617,7 @@ function DeliveryAnimationOverlay({ animationProgress }: { animationProgress: nu
     return null
   }
 
-  const overlayTransition = { type: "spring", stiffness: 150, damping: 24, mass: 0.6 }
+  const overlayTransition: any = { type: "spring", stiffness: 150, damping: 24, mass: 0.6 }
   const rotationAngle = animationProgress * 330
 
   return (
@@ -1216,7 +1216,7 @@ function TeamSection() {
             </div>
           </motion.div>
 
-          {/* Aman Pokale Card */
+          {/* Aman Pokale Card */}
           <motion.div
             initial={{ opacity: 0, x: 60 }}
             animate={isInView ? { opacity: 1, x: 0 } : {}}
