@@ -229,6 +229,14 @@ export const db = {
     create: async (data: Omit<Conversation, "id" | "createdAt" | "updatedAt">) => {
       try {
         const { db } = await connectToDatabase()
+        
+        // Check if conversation already exists
+        const existing = await db.collection('conversations').findOne({ sessionId: data.sessionId })
+        if (existing) {
+          console.log(`[DB] Conversation already exists for session ${data.sessionId}`)
+          return existing as Conversation
+        }
+        
         const conversation: Conversation = {
           ...data,
           id: generateId(),
@@ -236,6 +244,7 @@ export const db = {
           updatedAt: new Date(),
         }
         await db.collection('conversations').insertOne(conversation)
+        console.log(`[DB] Created new conversation for session ${data.sessionId}`)
         return conversation
       } catch (error) {
         console.error('MongoDB error creating conversation:', error)
@@ -256,13 +265,20 @@ export const db = {
     addMessage: async (sessionId: string, message: ConversationMessage) => {
       try {
         const { db } = await connectToDatabase()
-        await db.collection('conversations').updateOne(
+        const result = await db.collection('conversations').updateOne(
           { sessionId },
           { 
             $push: { messages: message },
-            $set: { updatedAt: new Date() }
-          }
+            $set: { updatedAt: new Date() },
+            $setOnInsert: { 
+              id: generateId(),
+              sessionId: sessionId,
+              createdAt: new Date()
+            }
+          },
+          { upsert: true } // Create if doesn't exist
         )
+        console.log(`[DB] Message added to session ${sessionId}. Matched: ${result.matchedCount}, Modified: ${result.modifiedCount}, Upserted: ${result.upsertedCount}`)
         return true
       } catch (error) {
         console.error('MongoDB error adding message:', error)
@@ -274,11 +290,15 @@ export const db = {
       try {
         const { db } = await connectToDatabase()
         const conversation = await db.collection('conversations').findOne({ sessionId })
-        if (!conversation || !conversation.messages) return []
+        if (!conversation || !conversation.messages) {
+          console.log(`[DB] No conversation found for session ${sessionId}`)
+          return []
+        }
         
         // Get last N conversations (user message + assistant response = 1 conversation)
         const messages = conversation.messages
         const recentMessages = messages.slice(-limit * 2) // Get last N pairs of messages
+        console.log(`[DB] Retrieved ${recentMessages.length} recent messages for session ${sessionId}`)
         return recentMessages
       } catch (error) {
         console.error('MongoDB error getting recent messages:', error)

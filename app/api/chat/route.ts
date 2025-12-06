@@ -134,34 +134,33 @@ export async function POST(request: NextRequest) {
     // Save conversation to database if sessionId is provided
     if (sessionId) {
       try {
-        // Ensure conversation exists
-        const existingConversation = await db.conversations.findBySessionId(sessionId)
-        if (!existingConversation) {
-          await db.conversations.create({
-            sessionId,
-            messages: [],
-          })
-        }
-
-        // Save user message
-        await db.conversations.addMessage(sessionId, {
+        console.log(`[/api/chat] Saving conversation for session: ${sessionId}`)
+        
+        // Save user message (upsert will create conversation if needed)
+        const userSaved = await db.conversations.addMessage(sessionId, {
           role: "user",
           content: message,
           timestamp: new Date(),
         })
 
         // Save assistant response
-        await db.conversations.addMessage(sessionId, {
+        const assistantSaved = await db.conversations.addMessage(sessionId, {
           role: "assistant",
           content: aiResponse,
           timestamp: new Date(),
         })
 
-        console.log("[/api/chat] Conversation saved to database")
+        if (userSaved && assistantSaved) {
+          console.log("[/api/chat] Conversation saved successfully to database")
+        } else {
+          console.error("[/api/chat] Failed to save one or more messages")
+        }
       } catch (dbError) {
         console.error("[/api/chat] Failed to save conversation:", dbError)
         // Don't fail the request if DB save fails
       }
+    } else {
+      console.warn("[/api/chat] No sessionId provided, conversation not saved")
     }
 
     console.log("[/api/chat] Success - AI Response:", aiResponse.substring(0, 100) + "...")

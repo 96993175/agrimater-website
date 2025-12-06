@@ -16,6 +16,7 @@ export default function InvestorAccessPage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [sessionId, setSessionId] = useState<string>("")
+  const [preferEdgeTTS, setPreferEdgeTTS] = useState(true) // Prefer Microsoft Edge TTS for faster response
   const recognitionRef = useRef<any>(null)
   const synthRef = useRef<SpeechSynthesis | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
@@ -139,27 +140,57 @@ export default function InvestorAccessPage() {
     }
   }, [])
 
-  const speakText = async (text: string) => {
+  const speakText = async (text: string, retryCount: number = 0) => {
+    const MAX_RETRIES = 2
+    
+    // Validate input
+    if (!text || typeof text !== 'string' || text.trim().length === 0) {
+      console.error("Invalid text for TTS:", text)
+      setIsSpeaking(false)
+      return
+    }
+
     // Stop any currently playing audio
-    if (currentAudioRef.current) {
-      currentAudioRef.current.pause()
-      currentAudioRef.current = null
+    try {
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause()
+        currentAudioRef.current = null
+      }
+      if (synthRef.current) {
+        synthRef.current.cancel()
+      }
+      stopTalkingAnimation()
+    } catch (cleanupError) {
+      console.warn("Error during audio cleanup:", cleanupError)
     }
-    if (synthRef.current) {
-      synthRef.current.cancel()
-    }
-    stopTalkingAnimation()
     
     setIsSpeaking(true)
     
     try {
+      // If preferEdgeTTS is true, try Microsoft Edge TTS first (faster, no server needed)
+      if (preferEdgeTTS) {
+        console.log("[TTS] Preferring Microsoft Edge TTS for faster response")
+        try {
+          await tryAzureTTS(text)
+          return
+        } catch (edgeError) {
+          console.log("[TTS] Microsoft Edge TTS failed, trying OpenVoice server:", edgeError)
+          // Continue to OpenVoice server below
+        }
+      }
+      
       // Try OpenVoice server first with timeout
       const ttsServerUrl = process.env.NEXT_PUBLIC_TTS_SERVER_URL || "http://localhost:5001"
       
       try {
         // Add timeout to prevent long waits
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
+        const timeoutId = setTimeout(() => {
+          controller.abort()
+          console.log("OpenVoice TTS request timeout after 5 seconds")
+        }, 5000)
+        
+        console.log(`[TTS] Attempting OpenVoice server (attempt ${retryCount + 1}/${MAX_RETRIES + 1})`)
         
         const response = await fetch(`${ttsServerUrl}/api/tts`, {
           method: "POST",
@@ -173,51 +204,107 @@ export default function InvestorAccessPage() {
         clearTimeout(timeoutId)
 
         if (response.ok) {
+          const contentType = response.headers.get("content-type")
+          if (!contentType || !contentType.includes("audio")) {
+            throw new Error(`Invalid content type: ${contentType}`)
+          }
+
           const audioBlob = await response.blob()
+          if (audioBlob.size === 0) {
+            throw new Error("Received empty audio blob")
+          }
+
           const audioUrl = URL.createObjectURL(audioBlob)
           const audio = new Audio(audioUrl)
           currentAudioRef.current = audio
           
+          console.log("[TTS] OpenVoice audio loaded successfully")
+          
           // Only start animation when audio actually starts playing
           audio.onplay = () => {
+            console.log("[TTS] Audio playback started")
             startTalkingAnimation()
             setupAudioAnalysis(audio)
           }
           
           audio.onended = () => {
+            console.log("[TTS] Audio playback ended")
             setIsSpeaking(false)
             stopTalkingAnimation()
             URL.revokeObjectURL(audioUrl)
             currentAudioRef.current = null
             // Auto-start listening after AI finishes speaking
-            if (response) {
-              setTimeout(() => {
-                startListening()
-              }, 500)
-            }
+            setTimeout(() => {
+              startListening()
+            }, 500)
           }
 
-          audio.onerror = () => {
+          audio.onerror = (event) => {
+            console.error("[TTS] Audio playback error:", event)
             setIsSpeaking(false)
             stopTalkingAnimation()
             URL.revokeObjectURL(audioUrl)
             currentAudioRef.current = null
-            console.error("Audio playback error, trying Azure TTS fallback")
-            tryAzureTTS(text)
+            
+            // Retry with OpenVoice if under retry limit
+            if (retryCount < MAX_RETRIES) {
+              console.log(`[TTS] Retrying OpenVoice (${retryCount + 1}/${MAX_RETRIES})...`)
+              setTimeout(() => speakText(text, retryCount + 1), 1000)
+            } else {
+              console.log("[TTS] OpenVoice failed, falling back to Microsoft Edge TTS")
+              tryAzureTTS(text)
+            }
           }
 
-          await audio.play()
-          return
+          // Attempt to play with error handling
+          try {
+            await audio.play()
+            console.log("[TTS] Audio play() called successfully")
+            return
+          } catch (playError) {
+            console.error("[TTS] Audio play() failed:", playError)
+            URL.revokeObjectURL(audioUrl)
+            throw playError
+          }
+        } else {
+          const errorText = await response.text().catch(() => "Unknown error")
+          throw new Error(`Server responded with ${response.status}: ${errorText}`)
         }
-      } catch (error) {
-        console.log("OpenVoice server not available, trying Azure TTS:", error)
+      } catch (error: any) {
+        const errorMessage = error?.message || String(error)
+        
+        if (error.name === 'AbortError') {
+          console.log("[TTS] OpenVoice request aborted (timeout)")
+        } else if (error instanceof TypeError && errorMessage.includes('fetch')) {
+          console.log("[TTS] Network error - OpenVoice server unreachable")
+        } else {
+          console.log("[TTS] OpenVoice error:", errorMessage)
+        }
+        
+        // Retry with OpenVoice if under retry limit and not a timeout
+        if (retryCount < MAX_RETRIES && error.name !== 'AbortError') {
+          console.log(`[TTS] Retrying OpenVoice (${retryCount + 1}/${MAX_RETRIES})...`)
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          return speakText(text, retryCount + 1)
+        }
       }
 
-      // Try Azure TTS as fallback
+      // Try Microsoft Edge TTS as fallback
+      console.log("[TTS] Falling back to Microsoft Edge TTS")
       await tryAzureTTS(text)
     } catch (error) {
-      console.error("TTS error:", error)
+      console.error("[TTS] Critical error in speakText:", error)
       setIsSpeaking(false)
+      stopTalkingAnimation()
+      
+      // Last resort fallback
+      try {
+        console.log("[TTS] Attempting final fallback to basic browser TTS")
+        fallbackToSpeechSynthesis(text)
+      } catch (fallbackError) {
+        console.error("[TTS] All TTS methods failed:", fallbackError)
+        setIsSpeaking(false)
+      }
     }
   }
 
@@ -225,104 +312,172 @@ export default function InvestorAccessPage() {
     // Use Microsoft Edge TTS voices through browser Speech Synthesis API
     // This is free and built-in, no API key needed with multilingual support
     try {
+      if (!text || text.trim().length === 0) {
+        console.error("[Edge TTS] Invalid text provided")
+        setIsSpeaking(false)
+        return
+      }
+
       if (!synthRef.current) {
+        console.error("[Edge TTS] Speech synthesis not available")
         fallbackToSpeechSynthesis(text)
         return
       }
 
       // Detect language from text
       const detectedLang = detectLanguage(text)
-      console.log("Detected language:", detectedLang)
+      console.log("[Edge TTS] Detected language:", detectedLang)
 
-      // Wait for voices to be loaded
+      // Wait for voices to be loaded with retry
       let voices = synthRef.current.getVoices()
+      let loadAttempts = 0
+      const MAX_LOAD_ATTEMPTS = 3
       
-      if (voices.length === 0) {
-        // Voices not loaded yet, wait for them
+      while (voices.length === 0 && loadAttempts < MAX_LOAD_ATTEMPTS) {
+        loadAttempts++
+        console.log(`[Edge TTS] Waiting for voices to load (attempt ${loadAttempts}/${MAX_LOAD_ATTEMPTS})...`)
+        
         await new Promise<void>((resolve) => {
-          synthRef.current!.onvoiceschanged = () => {
-            resolve()
+          let resolved = false
+          
+          const voicesChangedHandler = () => {
+            if (!resolved) {
+              resolved = true
+              console.log("[Edge TTS] Voices loaded via onvoiceschanged event")
+              resolve()
+            }
           }
-          // Timeout after 1 second
-          setTimeout(resolve, 1000)
+          
+          synthRef.current!.onvoiceschanged = voicesChangedHandler
+          
+          // Also try to force load by calling getVoices multiple times
+          const checkInterval = setInterval(() => {
+            const currentVoices = synthRef.current!.getVoices()
+            if (currentVoices.length > 0 && !resolved) {
+              resolved = true
+              clearInterval(checkInterval)
+              console.log("[Edge TTS] Voices loaded via polling")
+              resolve()
+            }
+          }, 100)
+          
+          // Timeout after 2 seconds
+          setTimeout(() => {
+            clearInterval(checkInterval)
+            if (!resolved) {
+              resolved = true
+              console.warn(`[Edge TTS] Voice loading timeout (attempt ${loadAttempts})`)
+              resolve()
+            }
+          }, 2000)
         })
+        
         voices = synthRef.current.getVoices()
       }
+      
+      if (voices.length === 0) {
+        console.error("[Edge TTS] No voices available after all loading attempts")
+        throw new Error("No speech synthesis voices available")
+      }
+      
+      console.log(`[Edge TTS] ${voices.length} voices available`)
+      
+      // Log first 5 voices for debugging
+      console.log("[Edge TTS] Sample voices:", voices.slice(0, 5).map(v => `${v.name} (${v.lang})`).join(', '))
 
-      // Try to find Microsoft Edge voices (high quality, neural) for detected language
-      const edgeVoices = voices.filter(voice => 
-        voice.name.includes('Microsoft') && 
+      // Find all Microsoft voices (both Online and local)
+      const allMicrosoftVoices = voices.filter(voice => 
+        voice.name.toLowerCase().includes('microsoft') ||
+        voice.name.toLowerCase().includes('neural') ||
+        voice.name.toLowerCase().includes('online')
+      )
+      
+      console.log(`[Edge TTS] Found ${allMicrosoftVoices.length} Microsoft/Neural voices`)
+      if (allMicrosoftVoices.length > 0) {
+        console.log("[Edge TTS] Microsoft voices:", allMicrosoftVoices.slice(0, 3).map(v => v.name).join(', '))
+      }
+      
+      // Try to find Microsoft voices for detected language
+      const microsoftLangVoices = allMicrosoftVoices.filter(voice => 
         voice.lang.startsWith(detectedLang)
       )
       
-      // Define preferred voices for different languages
-      const languageVoices: { [key: string]: string[] } = {
-        'en': [
-          'Microsoft Jenny Online (Natural) - English (United States)',
-          'Microsoft Aria Online (Natural) - English (United States)',
-          'Microsoft Guy Online (Natural) - English (United States)',
-        ],
-        'hi': [
-          'Microsoft Swara Online (Natural) - Hindi (India)',
-          'Microsoft Madhur Online (Natural) - Hindi (India)',
-        ],
-        'mr': [
-          'Microsoft Aarohi Online (Natural) - Marathi (India)',
-        ],
-        'ta': [
-          'Microsoft Pallavi Online (Natural) - Tamil (India)',
-        ],
-        'te': [
-          'Microsoft Shruti Online (Natural) - Telugu (India)',
-        ],
-        'bn': [
-          'Microsoft Bashkar Online (Natural) - Bangla (India)',
-        ],
-        'gu': [
-          'Microsoft Dhwani Online (Natural) - Gujarati (India)',
-        ],
-        'kn': [
-          'Microsoft Gagan Online (Natural) - Kannada (India)',
-        ],
-        'es': [
-          'Microsoft Elvira Online (Natural) - Spanish (Spain)',
-        ],
-        'fr': [
-          'Microsoft Denise Online (Natural) - French (France)',
-        ],
-        'de': [
-          'Microsoft Katja Online (Natural) - German (Germany)',
-        ],
-        'zh': [
-          'Microsoft Xiaoxiao Online (Natural) - Chinese (Mainland)',
-        ],
+      console.log(`[Edge TTS] Found ${microsoftLangVoices.length} Microsoft voices for language: ${detectedLang}`)
+      
+      // Preferred voice name patterns for different languages
+      const preferredPatterns: { [key: string]: string[] } = {
+        'en': ['Jenny', 'Aria', 'Guy', 'Sara', 'Mark'],
+        'hi': ['Swara', 'Madhur'],
+        'mr': ['Aarohi'],
+        'ta': ['Pallavi'],
+        'te': ['Shruti'],
+        'bn': ['Bashkar'],
+        'gu': ['Dhwani'],
+        'kn': ['Gagan'],
+        'es': ['Elvira', 'Elena'],
+        'fr': ['Denise', 'Eloise'],
+        'de': ['Katja', 'Conrad'],
+        'zh': ['Xiaoxiao', 'Yunxi'],
       }
       
-      const preferredVoices = languageVoices[detectedLang] || languageVoices['en']
-      let selectedVoice = null
+      const patterns = preferredPatterns[detectedLang] || preferredPatterns['en']
+      let selectedVoice: SpeechSynthesisVoice | null = null
       
-      for (const preferred of preferredVoices) {
-        selectedVoice = edgeVoices.find(v => v.name === preferred)
-        if (selectedVoice) break
+      // Try to find preferred voice by pattern matching
+      for (const pattern of patterns) {
+        const foundVoice = microsoftLangVoices.find(v => 
+          v.name.toLowerCase().includes(pattern.toLowerCase())
+        ) || null
+        if (foundVoice) {
+          selectedVoice = foundVoice
+          console.log(`[Edge TTS] Selected preferred voice: ${selectedVoice.name}`)
+          break
+        }
       }
       
-      // If no preferred voice, use any Microsoft voice for that language
-      if (!selectedVoice && edgeVoices.length > 0) {
-        selectedVoice = edgeVoices[0]
+      // If no preferred pattern match, use any Microsoft voice for that language
+      if (!selectedVoice && microsoftLangVoices.length > 0) {
+        selectedVoice = microsoftLangVoices[0]
+        console.log(`[Edge TTS] Using first available Microsoft voice: ${selectedVoice.name}`)
       }
       
-      // If still no Microsoft voice for that language, try English
+      // If no Microsoft voice for detected language, try any Microsoft English voice
+      if (!selectedVoice && detectedLang !== 'en') {
+        console.log(`[Edge TTS] No Microsoft voice for ${detectedLang}, trying English...`)
+        const englishMicrosoftVoices = allMicrosoftVoices.filter(v => v.lang.startsWith('en'))
+        if (englishMicrosoftVoices.length > 0) {
+          selectedVoice = englishMicrosoftVoices[0]
+          console.log(`[Edge TTS] Using English Microsoft voice: ${selectedVoice.name}`)
+        }
+      }
+      
+      // If still no Microsoft voice, use ANY Microsoft voice available
+      if (!selectedVoice && allMicrosoftVoices.length > 0) {
+        selectedVoice = allMicrosoftVoices[0]
+        console.log(`[Edge TTS] Using any available Microsoft voice: ${selectedVoice.name}`)
+      }
+      
+      // If absolutely no Microsoft voice, try to find any high-quality voice for the language
       if (!selectedVoice) {
-        const englishVoices = voices.filter(voice => 
-          voice.name.includes('Microsoft') && 
-          voice.lang.startsWith('en')
-        )
-        selectedVoice = englishVoices[0] || voices.find(v => v.lang.startsWith(detectedLang))
+        console.log("[Edge TTS] No Microsoft voices found, searching for quality voices...")
+        const langVoices = voices.filter(v => v.lang.startsWith(detectedLang))
+        
+        // Prefer voices with 'premium', 'enhanced', 'natural' in name
+        selectedVoice = langVoices.find(v => 
+          v.name.toLowerCase().includes('premium') ||
+          v.name.toLowerCase().includes('enhanced') ||
+          v.name.toLowerCase().includes('natural')
+        ) || langVoices[0]
+        
+        if (selectedVoice) {
+          console.log(`[Edge TTS] Using quality voice: ${selectedVoice.name}`)
+        }
       }
       
-      // Final fallback to any available voice
+      // Final fallback to standard TTS if no suitable voice found
       if (!selectedVoice) {
-        console.log("No Microsoft Edge voices available, using standard browser TTS")
+        console.warn("[Edge TTS] No suitable voices found, falling back to standard browser TTS")
+        console.log("[Edge TTS] All available voices:", voices.slice(0, 10).map(v => `${v.name} (${v.lang})`).join(', '))
         fallbackToSpeechSynthesis(text)
         return
       }
@@ -342,6 +497,7 @@ export default function InvestorAccessPage() {
       }
 
       utterance.onend = () => {
+        console.log("[Edge TTS] Speech ended successfully")
         setIsSpeaking(false)
         stopTalkingAnimation()
         // Auto-start listening after AI finishes speaking
@@ -350,20 +506,41 @@ export default function InvestorAccessPage() {
         }, 500)
       }
 
-      utterance.onerror = (error) => {
-        console.error("Edge TTS error:", error)
+      utterance.onerror = (error: any) => {
+        console.error("[Edge TTS] Speech error:", error.error || error)
         setIsSpeaking(false)
         stopTalkingAnimation()
-        fallbackToSpeechSynthesis(text)
+        
+        // Don't cascade to fallback if it's just a cancellation
+        if (error.error !== 'canceled' && error.error !== 'interrupted') {
+          console.log("[Edge TTS] Attempting standard browser TTS fallback")
+          fallbackToSpeechSynthesis(text)
+        }
       }
 
-      console.log("Using Microsoft Edge voice:", selectedVoice.name)
-      synthRef.current.speak(utterance)
+      console.log("[Edge TTS] Using voice:", selectedVoice.name, `(${selectedVoice.lang})`)
+      
+      try {
+        synthRef.current.speak(utterance)
+        console.log("[Edge TTS] Speech queued successfully")
+      } catch (speakError) {
+        console.error("[Edge TTS] Failed to queue speech:", speakError)
+        throw speakError
+      }
 
-    } catch (error) {
-      console.error("Edge TTS error:", error)
+    } catch (error: any) {
+      console.error("[Edge TTS] Critical error:", error?.message || error)
+      setIsSpeaking(false)
+      stopTalkingAnimation()
+      
       // Final fallback to standard browser TTS
-      fallbackToSpeechSynthesis(text)
+      try {
+        console.log("[Edge TTS] Attempting final fallback to standard TTS")
+        fallbackToSpeechSynthesis(text)
+      } catch (fallbackError) {
+        console.error("[Edge TTS] All TTS methods exhausted:", fallbackError)
+        setIsSpeaking(false)
+      }
     }
   }
 
@@ -504,8 +681,27 @@ export default function InvestorAccessPage() {
   }
 
   const fallbackToSpeechSynthesis = (text: string) => {
-    if (synthRef.current) {
-      synthRef.current.cancel()
+    try {
+      if (!text || text.trim().length === 0) {
+        console.error("[Fallback TTS] Invalid text provided")
+        setIsSpeaking(false)
+        return
+      }
+
+      if (!synthRef.current) {
+        console.error("[Fallback TTS] Speech synthesis not available")
+        setIsSpeaking(false)
+        return
+      }
+
+      console.log("[Fallback TTS] Using standard browser speech synthesis")
+      
+      // Cancel any ongoing speech
+      try {
+        synthRef.current.cancel()
+      } catch (cancelError) {
+        console.warn("[Fallback TTS] Error canceling previous speech:", cancelError)
+      }
       
       // Detect language for fallback
       const detectedLang = detectLanguage(text)
@@ -521,6 +717,8 @@ export default function InvestorAccessPage() {
                        detectedLang === 'de' ? 'de-DE' :
                        detectedLang === 'zh' ? 'zh-CN' : 'en-US'
       
+      console.log(`[Fallback TTS] Using language: ${langCode}`)
+      
       const utterance = new SpeechSynthesisUtterance(text)
       utterance.lang = langCode
       utterance.rate = 0.9
@@ -528,21 +726,39 @@ export default function InvestorAccessPage() {
       utterance.volume = 1
 
       utterance.onstart = () => {
+        console.log("[Fallback TTS] Speech started")
         setIsSpeaking(true)
         startTalkingAnimation()
       }
+      
       utterance.onend = () => {
+        console.log("[Fallback TTS] Speech ended")
         setIsSpeaking(false)
         stopTalkingAnimation()
         // Auto-start listening after AI finishes speaking
-        if (response) {
-          setTimeout(() => {
-            startListening()
-          }, 500)
-        }
+        setTimeout(() => {
+          startListening()
+        }, 500)
+      }
+      
+      utterance.onerror = (error: any) => {
+        console.error("[Fallback TTS] Speech error:", error.error || error)
+        setIsSpeaking(false)
+        stopTalkingAnimation()
       }
 
-      synthRef.current.speak(utterance)
+      try {
+        synthRef.current.speak(utterance)
+        console.log("[Fallback TTS] Speech queued successfully")
+      } catch (speakError) {
+        console.error("[Fallback TTS] Failed to queue speech:", speakError)
+        setIsSpeaking(false)
+        stopTalkingAnimation()
+      }
+    } catch (error) {
+      console.error("[Fallback TTS] Critical error:", error)
+      setIsSpeaking(false)
+      stopTalkingAnimation()
     }
   }
 
