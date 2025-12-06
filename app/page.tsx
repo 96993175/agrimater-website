@@ -417,7 +417,7 @@ function HeroSection() {
               hidden: { opacity: 0, y: 30 },
               visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
             }}
-            className="flex flex-col justify-center space-y-8 text-center lg:text-left"
+            className="flex flex-col justify-center space-y-8"
           >
             <motion.h1 className="text-[4.084rem] sm:text-[4.765rem] md:text-[5.445rem] font-bold text-gray-900 mb-6 tracking-tight leading-[1.05]">
               <motion.span
@@ -459,7 +459,7 @@ function HeroSection() {
                 hidden: { opacity: 0, y: 20 },
                 visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
               }}
-              className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-5 mt-6"
+              className="flex flex-col sm:flex-row items-start gap-5 mt-6"
             >
               <CTAButton
                 label="Join as a Farmer"
@@ -483,7 +483,7 @@ function HeroSection() {
               hidden: { opacity: 0, x: 60 },
               visible: { opacity: 1, x: 0, transition: { duration: 0.9, ease: "easeOut" } }
             }}
-            className="relative flex items-center justify-center order-first lg:order-last"
+            className="relative flex items-center justify-center"
           >
             {/* Logo container with subtle parallax */}
             <motion.div 
@@ -617,7 +617,7 @@ function DeliveryAnimationOverlay({ animationProgress }: { animationProgress: nu
     return null
   }
 
-  const overlayTransition: any = { type: "spring", stiffness: 150, damping: 24, mass: 0.6 }
+  const overlayTransition = { type: "spring", stiffness: 150, damping: 24, mass: 0.6 }
   const rotationAngle = animationProgress * 330
 
   return (
@@ -984,7 +984,7 @@ function ImpactSection({ animationState }: { animationState: AnimationState }) {
             transition={{ duration: 1 }}
             className="relative order-2 lg:order-2 mt-16 lg:mt-16"
           >
-            <div className="relative aspect-square max-w-lg mx-auto min-h-[400px] md:min-h-[500px]">
+            <div className="relative aspect-square max-w-lg mx-auto">
               {/* Outer glow effect */}
               <div className="absolute -inset-4 bg-gradient-to-r from-[#00F28A]/20 via-[#4BE96A]/20 to-[#00F28A]/20 rounded-[2rem] blur-2xl opacity-70" />
               
@@ -998,9 +998,9 @@ function ImpactSection({ animationState }: { animationState: AnimationState }) {
                     src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3781.7891234567890!2d73.6868!3d18.5912!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2sHinjewadi%20Phase%201%2C%20Pune!5e0!3m2!1sen!2sin!4v1234567890"
                     width="100%"
                     height="100%"
-                    style={{ border: 0, minHeight: '400px' }}
+                    style={{ border: 0 }}
                     allowFullScreen
-                    loading="eager"
+                    loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
                     className="absolute inset-0"
                   />
@@ -1216,7 +1216,7 @@ function TeamSection() {
             </div>
           </motion.div>
 
-          {/* Aman Pokale Card */}
+          {/* Aman Pokale Card */
           <motion.div
             initial={{ opacity: 0, x: 60 }}
             animate={isInView ? { opacity: 1, x: 0 } : {}}
