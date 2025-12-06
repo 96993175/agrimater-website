@@ -16,7 +16,10 @@ async function connectToDatabase() {
 
   try {
     console.log('Connecting to MongoDB...')
-    const client = await MongoClient.connect(MONGODB_URI)
+    const client = await MongoClient.connect(MONGODB_URI, {
+      tls: true,
+      tlsAllowInvalidCertificates: false,
+    })
     const db = client.db(DB_NAME)
 
     cachedClient = client
