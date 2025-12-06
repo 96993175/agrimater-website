@@ -417,7 +417,7 @@ function HeroSection() {
               hidden: { opacity: 0, y: 30 },
               visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
             }}
-            className="flex flex-col justify-center space-y-6 md:space-y-8 order-2 lg:order-1"
+            className="flex flex-col justify-center space-y-6 md:space-y-8 order-1 lg:order-1"
           >
             <motion.h1 className="text-[2.5rem] sm:text-[3rem] md:text-[4rem] lg:text-[5.445rem] font-bold text-gray-900 mb-4 md:mb-6 tracking-tight leading-[1.1] md:leading-[1.05] text-center md:text-left">
               <motion.span
@@ -483,7 +483,7 @@ function HeroSection() {
               hidden: { opacity: 0, x: 60 },
               visible: { opacity: 1, x: 0, transition: { duration: 0.9, ease: "easeOut" } }
             }}
-            className="relative flex items-center justify-center order-1 lg:order-2 -mt-8 lg:mt-0"
+            className="relative flex items-center justify-center order-2 lg:order-2 mt-8 lg:mt-0"
           >
             {/* Logo container with subtle parallax */}
             <motion.div 
@@ -704,7 +704,7 @@ function VisionSection() {
   ]
 
   return (
-    <section id="vision" ref={ref} className="py-32 md:py-40 relative overflow-hidden bg-white -mt-16">
+    <section id="vision" ref={ref} className="py-16 md:py-24 relative overflow-hidden bg-white -mt-16">
       <div className="absolute inset-0 opacity-30">
         <div
           className="absolute inset-0"
@@ -731,7 +731,7 @@ function VisionSection() {
             </div>
             
             {/* "The" text at left corner */}
-            <div className="absolute left-0 top-0 left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 sm:-translate-x-[12vw] md:-translate-x-[14vw] lg:-translate-x-[15vw] -translate-y-[5vw] sm:-translate-y-[6vw] md:-translate-y-[5.5vw]">
+            <div className="absolute left-0 top-0 left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 sm:-translate-x-[12vw] md:-translate-x-[14vw] lg:-translate-x-[15vw] -translate-y-[15vw] sm:-translate-y-[6vw] md:-translate-y-[5.5vw]">
               <h3 className="text-[8vw] sm:text-[7vw] md:text-[6vw] lg:text-6xl font-bold text-gray-900">The</h3>
             </div>
             
@@ -866,7 +866,7 @@ function FeaturesSection({
   }, [onAnimationStateChange, onProgressChange])
 
   return (
-    <section id="features" ref={ref} className="py-0 md:py-16 relative bg-white mt-16 md:mt-0">
+    <section id="features" ref={ref} className="py-0 md:py-8 relative bg-white mt-8 md:mt-0">
       <div className="container mx-auto px-6 relative z-10">
         <div className="grid lg:grid-cols-2 gap-16 items-start mb-0">
           {/* Left side - Single feature image */}
