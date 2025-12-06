@@ -419,7 +419,7 @@ function HeroSection() {
             }}
             className="flex flex-col justify-center space-y-8"
           >
-            <motion.h1 className="text-[4.084rem] sm:text-[4.765rem] md:text-[5.445rem] font-bold text-gray-900 mb-6 tracking-tight leading-[1.05]">
+            <motion.h1 className="text-[4.084rem] sm:text-[4.765rem] md:text-[5.445rem] font-bold text-gray-900 mb-6 tracking-tight leading-[1.05] text-center md:text-left">
               <motion.span
                 initial={{ opacity: 0, x: -100 }}
                 animate={{ opacity: 1, x: 0 }}
