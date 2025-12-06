@@ -417,9 +417,9 @@ function HeroSection() {
               hidden: { opacity: 0, y: 30 },
               visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
             }}
-            className="flex flex-col justify-center space-y-8"
+            className="flex flex-col justify-center space-y-8 order-2 lg:order-1"
           >
-            <motion.h1 className="text-[4.084rem] sm:text-[3.765rem] md:text-[5.445rem] font-bold text-gray-900 mb-6 tracking-tight leading-[1.05] text-left md:text-left">
+            <motion.h1 className="text-[4.084rem] sm:text-[3.765rem] md:text-[5.445rem] font-bold text-gray-900 mb-6 tracking-tight leading-[1.05] text-center md:text-left">
               <motion.span
                 initial={{ opacity: 0, x: -100 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -459,7 +459,7 @@ function HeroSection() {
                 hidden: { opacity: 0, y: 20 },
                 visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
               }}
-              className="flex flex-col sm:flex-row items-start gap-5 mt-6"
+              className="flex flex-col sm:flex-row items-center sm:items-start justify-center sm:justify-start gap-5 mt-6"
             >
               <CTAButton
                 label="Join as a Farmer"
@@ -483,7 +483,7 @@ function HeroSection() {
               hidden: { opacity: 0, x: 60 },
               visible: { opacity: 1, x: 0, transition: { duration: 0.9, ease: "easeOut" } }
             }}
-            className="relative flex items-center justify-center"
+            className="relative flex items-center justify-center order-1 lg:order-2"
           >
             {/* Logo container with subtle parallax */}
             <motion.div 
