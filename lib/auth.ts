@@ -1,42 +1,28 @@
-// Simple JWT-like auth utilities (for demo purposes)
-// In production, use proper JWT library with secure secret
+import jwt from "jsonwebtoken"
 
-const SECRET = "agrimater-secret-key-change-in-production"
+const SECRET = process.env.JWT_SECRET || "change-this-secret-in-production"
 
+// Create token
 export function createToken(payload: Record<string, unknown>): string {
-  const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }))
-  const exp = Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days
-  const data = btoa(JSON.stringify({ ...payload, exp }))
-  const signature = btoa(SECRET + data)
-  return `${header}.${data}.${signature}`
+  return jwt.sign(payload, SECRET, { expiresIn: "7d" })
 }
 
-export function verifyToken(token: string): { valid: boolean; payload?: Record<string, unknown> } {
+// Verify token
+export function verifyToken(token: string): { valid: boolean; payload?: any } {
   try {
-    const [, data, signature] = token.split(".")
-    const expectedSignature = btoa(SECRET + data)
-
-    if (signature !== expectedSignature) {
-      return { valid: false }
-    }
-
-    const payload = JSON.parse(atob(data))
-
-    if (payload.exp < Date.now()) {
-      return { valid: false }
-    }
-
-    return { valid: true, payload }
+    const decoded = jwt.verify(token, SECRET)
+    return { valid: true, payload: decoded }
   } catch {
     return { valid: false }
   }
 }
 
+// Hash password
 export function hashPassword(password: string): string {
-  // Simple hash for demo - use bcrypt in production
-  return btoa(password + SECRET)
+  return Buffer.from(password + SECRET).toString("base64")
 }
 
+// Verify password
 export function verifyPassword(password: string, hash: string): boolean {
   return hashPassword(password) === hash
 }
