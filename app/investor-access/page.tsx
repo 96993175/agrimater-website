@@ -197,6 +197,7 @@ export default function InvestorAccessPage() {
         // Add subtle rotation for more dynamic feel
         rotation = Math.sin(pulsePhase * 0.5) * 3 // Rotate ±3 degrees
         
+        
         // Add vertical bounce for emphasis
         const verticalBounce = Math.sin(pulsePhase) * 2 // Move ±2px
         
