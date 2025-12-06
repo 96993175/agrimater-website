@@ -1071,17 +1071,31 @@ function ImpactSection({ animationState }: { animationState: AnimationState }) {
   const isAnchoredState = animationState === "anchored"
   const [mapError, setMapError] = useState(false)
   const [retryCount, setRetryCount] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    // Cleanup timeout on unmount
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const handleMapLoad = () => {
     setMapError(false)
+    setIsLoading(false)
   }
 
   const handleMapError = () => {
+    setIsLoading(false)
     if (retryCount < 3) {
-      // Retry loading the map
-      setTimeout(() => {
+      // Auto-retry loading the map
+      retryTimeoutRef.current = setTimeout(() => {
         setRetryCount(prev => prev + 1)
+        setIsLoading(true)
         if (iframeRef.current) {
           const src = iframeRef.current.src
           iframeRef.current.src = ''
@@ -1094,6 +1108,21 @@ function ImpactSection({ animationState }: { animationState: AnimationState }) {
       }, 2000)
     } else {
       setMapError(true)
+    }
+  }
+
+  const handleRetryClick = () => {
+    setMapError(false)
+    setRetryCount(0)
+    setIsLoading(true)
+    if (iframeRef.current) {
+      const src = iframeRef.current.src
+      iframeRef.current.src = ''
+      setTimeout(() => {
+        if (iframeRef.current) {
+          iframeRef.current.src = src
+        }
+      }, 100)
     }
   }
 
@@ -1169,33 +1198,50 @@ function ImpactSection({ animationState }: { animationState: AnimationState }) {
                 <div className="relative w-full h-full rounded-[1.25rem] overflow-hidden">
                   {mapError ? (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-white p-6 text-center">
-                      <MapPinIcon className="w-16 h-16 text-gray-300 mb-4" />
-                      <p className="text-gray-600 font-semibold mb-2">Map temporarily unavailable</p>
-                      <p className="text-sm text-gray-500 mb-4">Hinjewadi Phase 1, Pune, Maharashtra</p>
+                      <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-4">
+                        <MapPinIcon className="w-8 h-8 text-red-400" />
+                      </div>
+                      <p className="text-gray-800 font-bold text-lg mb-2">Map temporarily unavailable</p>
+                      <p className="text-sm text-gray-500 mb-6">Hinjewadi Phase 1, Pune, Maharashtra</p>
                       <button
-                        onClick={() => {
-                          setMapError(false)
-                          setRetryCount(0)
-                        }}
-                        className="px-4 py-2 bg-[#00F28A] text-black rounded-full text-sm font-semibold hover:bg-[#4BE96A] transition-colors"
+                        onClick={handleRetryClick}
+                        className="px-6 py-3 bg-gradient-to-r from-[#00F28A] to-[#4BE96A] text-black rounded-full text-sm font-bold hover:shadow-lg hover:shadow-[#00F28A]/30 transition-all duration-300 flex items-center gap-2"
                       >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
                         Retry Loading Map
                       </button>
                     </div>
                   ) : (
-                    <iframe
-                      ref={iframeRef}
-                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3781.7891234567890!2d73.6868!3d18.5912!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2sHinjewadi%20Phase%201%2C%20Pune!5e0!3m2!1sen!2sin!4v1234567890"
-                      width="100%"
-                      height="100%"
-                      style={{ border: 0 }}
-                      allowFullScreen
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                      className="absolute inset-0"
-                      onLoad={handleMapLoad}
-                      onError={handleMapError}
-                    />
+                    <>
+                      {isLoading && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-emerald-50 to-white z-10">
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            className="w-12 h-12 border-4 border-[#00F28A]/20 border-t-[#00F28A] rounded-full mb-4"
+                          />
+                          <p className="text-gray-600 font-semibold">Loading map...</p>
+                          {retryCount > 0 && (
+                            <p className="text-xs text-gray-400 mt-2">Retry attempt {retryCount}/3</p>
+                          )}
+                        </div>
+                      )}
+                      <iframe
+                        ref={iframeRef}
+                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3781.7891234567890!2d73.6868!3d18.5912!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2sHinjewadi%20Phase%201%2C%20Pune!5e0!3m2!1sen!2sin!4v1234567890"
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0 }}
+                        allowFullScreen
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        className="absolute inset-0"
+                        onLoad={handleMapLoad}
+                        onError={handleMapError}
+                      />
+                    </>
                   )}
                 </div>
               </div>
