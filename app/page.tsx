@@ -409,7 +409,7 @@ function HeroSection() {
               }
             }
           }}
-          className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center min-h-screen py-20"
+          className="flex flex-col lg:grid lg:grid-cols-2 gap-12 lg:gap-24 items-center min-h-screen py-20"
         >
           {/* Left side - Text content */}
           <motion.div 
@@ -419,7 +419,7 @@ function HeroSection() {
             }}
             className="flex flex-col justify-center space-y-8"
           >
-            <motion.h1 className="text-[4.084rem] sm:text-[4.765rem] md:text-[5.445rem] font-bold text-gray-900 mb-6 tracking-tight leading-[1.05] text-center md:text-left">
+            <motion.h1 className="text-[2.5rem] sm:text-[4.765rem] md:text-[5.445rem] font-bold text-gray-900 mb-6 tracking-tight leading-[1.05] text-center md:text-left">
               <motion.span
                 initial={{ opacity: 0, x: -100 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -459,7 +459,7 @@ function HeroSection() {
                 hidden: { opacity: 0, y: 20 },
                 visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
               }}
-              className="flex flex-col sm:flex-row items-center sm:items-start gap-5 mt-6"
+              className="flex flex-col sm:flex-row items-start gap-5 mt-6"
             >
               <CTAButton
                 label="Join as a Farmer"
