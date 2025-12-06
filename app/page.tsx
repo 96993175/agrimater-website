@@ -394,7 +394,7 @@ function HeroSection() {
   const isInView = useInView(ref, { once: true })
 
   return (
-    <section ref={ref} className="relative min-h-screen flex items-center overflow-hidden bg-white pt-24 md:pt-0">
+    <section ref={ref} className="relative min-h-screen flex items-center overflow-hidden bg-white pt-20 md:pt-0">
       <div className="relative container mx-auto px-6 lg:px-12">
         <motion.div 
           initial="hidden"
@@ -731,7 +731,7 @@ function VisionSection() {
             </div>
             
             {/* "The" text at left corner */}
-            <div className="absolute left-0 top-0 left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 sm:-translate-x-[12vw] md:-translate-x-[14vw] lg:-translate-x-[15vw] -translate-y-[20] sm:-translate-y-[6vw] md:-translate-y-[5.5vw]">
+            <div className="absolute left-0 top-0 left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 sm:-translate-x-[12vw] md:-translate-x-[14vw] lg:-translate-x-[15vw] -translate-y-[25] sm:-translate-y-[6vw] md:-translate-y-[5.5vw]">
               <h3 className="text-[8vw] sm:text-[7vw] md:text-[6vw] lg:text-6xl font-bold text-gray-900">The</h3>
             </div>
             
