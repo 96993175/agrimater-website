@@ -409,7 +409,7 @@ function HeroSection() {
               }
             }
           }}
-          className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center min-h-screen py-20"
+          className="grid lg:grid-cols-2 gap-8 lg:gap-24 items-center min-h-screen py-12 md:py-20"
         >
           {/* Left side - Text content */}
           <motion.div 
@@ -417,9 +417,9 @@ function HeroSection() {
               hidden: { opacity: 0, y: 30 },
               visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
             }}
-            className="flex flex-col justify-center space-y-8 order-2 lg:order-1"
+            className="flex flex-col justify-center space-y-6 md:space-y-8 order-2 lg:order-1"
           >
-            <motion.h1 className="text-[4.084rem] sm:text-[3.765rem] md:text-[5.445rem] font-bold text-gray-900 mb-6 tracking-tight leading-[1.05] text-center md:text-left">
+            <motion.h1 className="text-[2.5rem] sm:text-[3rem] md:text-[4rem] lg:text-[5.445rem] font-bold text-gray-900 mb-4 md:mb-6 tracking-tight leading-[1.1] md:leading-[1.05] text-center md:text-left">
               <motion.span
                 initial={{ opacity: 0, x: -100 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -459,7 +459,7 @@ function HeroSection() {
                 hidden: { opacity: 0, y: 20 },
                 visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
               }}
-              className="flex flex-col sm:flex-row items-center sm:items-start justify-center sm:justify-start gap-5 mt-6"
+              className="flex flex-col sm:flex-row items-center sm:items-start justify-center md:justify-start gap-4 sm:gap-5 mt-4 md:mt-6 w-full"
             >
               <CTAButton
                 label="Join as a Farmer"
@@ -483,7 +483,7 @@ function HeroSection() {
               hidden: { opacity: 0, x: 60 },
               visible: { opacity: 1, x: 0, transition: { duration: 0.9, ease: "easeOut" } }
             }}
-            className="relative flex items-center justify-center order-1 lg:order-2"
+            className="relative flex items-center justify-center order-1 lg:order-2 -mt-8 lg:mt-0"
           >
             {/* Logo container with subtle parallax */}
             <motion.div 
@@ -664,7 +664,7 @@ function CTAButton({
         initial={{ scale: 1, opacity: 1 }}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        className={`group relative z-40 px-[1.6rem] py-[0.8rem] rounded-full font-bold text-[0.9rem] flex items-center gap-3 transition-all duration-300 ${baseClasses}`}
+        className={`group relative z-40 px-6 sm:px-[1.6rem] py-3 sm:py-[0.8rem] rounded-full font-bold text-sm sm:text-[0.9rem] flex items-center justify-center gap-2 sm:gap-3 transition-all duration-300 w-full sm:w-auto ${baseClasses}`}
       >
         {icon && (
           <span className={iconFirst ? "order-1" : "order-2"}>
