@@ -22,12 +22,39 @@ export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   useEffect(() => {
+    let throttleTimer: NodeJS.Timeout | null = null;
+    let lastScrollY = window.scrollY;
+    
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20)
-    }
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+      // Prevent unnecessary state updates if value hasn't changed
+      const currentScrollY = window.scrollY;
+      const shouldBeScrolled = currentScrollY > 20;
+      
+      // Only update state if the scrolled state actually changes
+      if (shouldBeScrolled !== isScrolled) {
+        setIsScrolled(shouldBeScrolled);
+      }
+      
+      lastScrollY = currentScrollY;
+    };
+    
+    const throttledHandleScroll = () => {
+      if (throttleTimer) return;
+      
+      throttleTimer = setTimeout(() => {
+        throttleTimer = null;
+        handleScroll();
+      }, 100); // Throttle to 100ms
+    };
+    
+    window.addEventListener("scroll", throttledHandleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", throttledHandleScroll);
+      if (throttleTimer) {
+        clearTimeout(throttleTimer);
+      }
+    };
+  }, [isScrolled])
 
   return (
     <>
@@ -44,7 +71,7 @@ export function Navbar() {
       >
         <nav className="container mx-auto px-6 md:px-12 flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
+          <Link href="/" prefetch={false} className="flex items-center gap-2.5 group">
             <motion.div
               whileHover={{ scale: 1.05 }}
               className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-[#00F28A] to-[#4BE96A] flex items-center justify-center shadow-lg group-hover:shadow-[#00f28a]/50 transition-shadow duration-300"
@@ -72,7 +99,7 @@ export function Navbar() {
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center gap-3">
-            <Link href="/login">
+            <Link href="/login" prefetch={false}>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -81,7 +108,7 @@ export function Navbar() {
                 Login
               </motion.button>
             </Link>
-            <Link href="/farmer-onboarding">
+            <Link href="/farmer-onboarding" prefetch={false}>
               <motion.button
                 whileHover={{ scale: 1.05, boxShadow: "0 0 25px rgba(0, 242, 138, 0.4)" }}
                 whileTap={{ scale: 0.95 }}
@@ -121,12 +148,12 @@ export function Navbar() {
                 </a>
               ))}
               <div className={cn("flex flex-col gap-3", isHomePage && "pt-4 border-t border-gray-200")}>
-                <Link href="/login" className="w-full">
+                <Link href="/login" prefetch={false} className="w-full">
                   <button className="w-full px-5 py-3 text-gray-700 hover:bg-gray-50 rounded-lg font-medium transition-colors">
                     Login
                   </button>
                 </Link>
-                <Link href="/farmer-onboarding" className="w-full">
+                <Link href="/farmer-onboarding" prefetch={false} className="w-full">
                   <button className="w-full px-5 py-3 rounded-full bg-gradient-to-r from-[#00F28A] to-[#4BE96A] text-gray-900 font-medium">
                     Get Started
                   </button>

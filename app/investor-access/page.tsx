@@ -1,5 +1,6 @@
 "use client"
 
+/// <reference types="react" />
 import type React from "react"
 import { useRef, useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -19,6 +20,12 @@ export default function InvestorAccessPage() {
   const [preferEdgeTTS, setPreferEdgeTTS] = useState(true) // Prefer Microsoft Edge TTS for faster response
   const recognitionRef = useRef<any>(null)
   const synthRef = useRef<SpeechSynthesis | null>(null)
+  
+  // Circuit breaker and cooldown tracking
+  const ttsRetryCountRef = useRef(0)
+  const lastTTSAttemptRef = useRef(0)
+  const currentTTSPromiseRef = useRef<Promise<any> | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
   const animationFrameRef = useRef<number | null>(null)
@@ -65,6 +72,9 @@ export default function InvestorAccessPage() {
 
     // Initialize or get session ID
     const initializeSession = async () => {
+      // Reset TTS retry counter on session initialization
+      ttsRetryCountRef.current = 0
+      
       let sid = localStorage.getItem("agrimater_session_id")
       if (!sid) {
         sid = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
@@ -137,11 +147,51 @@ export default function InvestorAccessPage() {
       if (synthRef.current) {
         synthRef.current.cancel()
       }
+      // Clean up any pending abort controllers
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+        abortControllerRef.current = null
+      }
+      // Reset counters on unmount
+      ttsRetryCountRef.current = 0
     }
   }, [])
 
   const speakText = async (text: string, retryCount: number = 0) => {
     const MAX_RETRIES = 2
+    
+    // Prevent multiple simultaneous TTS operations
+    if (isSpeaking && retryCount === 0) {
+      console.log('[TTS] Another TTS operation in progress, aborting previous and starting new')
+      // Cancel the previous TTS operation
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+        abortControllerRef.current = null
+      }
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause()
+        currentAudioRef.current = null
+      }
+      if (synthRef.current) {
+        synthRef.current.cancel()
+      }
+      stopTalkingAnimation()
+    }
+    
+    // Check if we should apply cooldown
+    const now = Date.now()
+    const COOLDOWN_PERIOD = 1000 // 1 second cooldown between TTS calls
+    if (now - lastTTSAttemptRef.current < COOLDOWN_PERIOD && retryCount === 0) {
+      console.log('[TTS] Cooldown active, skipping request')
+      return
+    }
+    
+    // Check circuit breaker - max 2 retries per session
+    if (ttsRetryCountRef.current >= MAX_RETRIES) {
+      console.log('[TTS] Circuit breaker tripped, skipping request')
+      setIsSpeaking(false)
+      return
+    }
     
     // Validate input
     if (!text || typeof text !== 'string' || text.trim().length === 0) {
@@ -152,6 +202,13 @@ export default function InvestorAccessPage() {
 
     // Stop any currently playing audio
     try {
+      // Abort any ongoing TTS requests
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+        abortControllerRef.current = null
+      }
+      
+      // Cancel any existing speech synthesis
       if (currentAudioRef.current) {
         currentAudioRef.current.pause()
         currentAudioRef.current = null
@@ -165,6 +222,14 @@ export default function InvestorAccessPage() {
     }
     
     setIsSpeaking(true)
+    
+    // Update last attempt time and increment retry counter
+    lastTTSAttemptRef.current = Date.now()
+    if (retryCount > 0) {
+      ttsRetryCountRef.current++
+    } else {
+      ttsRetryCountRef.current = 0 // Reset on fresh attempt
+    }
     
     try {
       // If preferEdgeTTS is true, try Microsoft Edge TTS first (faster, no server needed)
@@ -185,6 +250,7 @@ export default function InvestorAccessPage() {
       try {
         // Add timeout to prevent long waits
         const controller = new AbortController()
+        abortControllerRef.current = controller // Store for potential abort
         const timeoutId = setTimeout(() => {
           controller.abort()
           console.log("OpenVoice TTS request timeout after 5 seconds")
@@ -202,6 +268,8 @@ export default function InvestorAccessPage() {
         })
         
         clearTimeout(timeoutId)
+        // Clear the abort controller since request succeeded
+        abortControllerRef.current = null
 
         if (response.ok) {
           const contentType = response.headers.get("content-type")
@@ -249,6 +317,8 @@ export default function InvestorAccessPage() {
             // Retry with OpenVoice if under retry limit
             if (retryCount < MAX_RETRIES) {
               console.log(`[TTS] Retrying OpenVoice (${retryCount + 1}/${MAX_RETRIES})...`)
+              // Reset the abort controller before retry
+              abortControllerRef.current = null
               setTimeout(() => speakText(text, retryCount + 1), 1000)
             } else {
               console.log("[TTS] OpenVoice failed, falling back to Microsoft Edge TTS")
@@ -284,6 +354,8 @@ export default function InvestorAccessPage() {
         // Retry with OpenVoice if under retry limit and not a timeout
         if (retryCount < MAX_RETRIES && error.name !== 'AbortError') {
           console.log(`[TTS] Retrying OpenVoice (${retryCount + 1}/${MAX_RETRIES})...`)
+          // Reset the abort controller before retry
+          abortControllerRef.current = null
           await new Promise(resolve => setTimeout(resolve, 1000))
           return speakText(text, retryCount + 1)
         }
@@ -337,6 +409,7 @@ export default function InvestorAccessPage() {
         loadAttempts++
         console.log(`[Edge TTS] Waiting for voices to load (attempt ${loadAttempts}/${MAX_LOAD_ATTEMPTS})...`)
         
+        // Use onvoiceschanged event only, no polling
         await new Promise<void>((resolve) => {
           let resolved = false
           
@@ -350,20 +423,8 @@ export default function InvestorAccessPage() {
           
           synthRef.current!.onvoiceschanged = voicesChangedHandler
           
-          // Also try to force load by calling getVoices multiple times
-          const checkInterval = setInterval(() => {
-            const currentVoices = synthRef.current!.getVoices()
-            if (currentVoices.length > 0 && !resolved) {
-              resolved = true
-              clearInterval(checkInterval)
-              console.log("[Edge TTS] Voices loaded via polling")
-              resolve()
-            }
-          }, 100)
-          
           // Timeout after 2 seconds
           setTimeout(() => {
-            clearInterval(checkInterval)
             if (!resolved) {
               resolved = true
               console.warn(`[Edge TTS] Voice loading timeout (attempt ${loadAttempts})`)
@@ -386,7 +447,7 @@ export default function InvestorAccessPage() {
       console.log("[Edge TTS] Sample voices:", voices.slice(0, 5).map(v => `${v.name} (${v.lang})`).join(', '))
 
       // Find all Microsoft voices (both Online and local)
-      const allMicrosoftVoices = voices.filter(voice => 
+      const allMicrosoftVoices = voices.filter((voice: SpeechSynthesisVoice) => 
         voice.name.toLowerCase().includes('microsoft') ||
         voice.name.toLowerCase().includes('neural') ||
         voice.name.toLowerCase().includes('online')
@@ -398,7 +459,7 @@ export default function InvestorAccessPage() {
       }
       
       // Try to find Microsoft voices for detected language
-      const microsoftLangVoices = allMicrosoftVoices.filter(voice => 
+      const microsoftLangVoices = allMicrosoftVoices.filter((voice: SpeechSynthesisVoice) => 
         voice.lang.startsWith(detectedLang)
       )
       
@@ -425,12 +486,12 @@ export default function InvestorAccessPage() {
       
       // Try to find preferred voice by pattern matching
       for (const pattern of patterns) {
-        const foundVoice = microsoftLangVoices.find(v => 
+        const foundVoice = microsoftLangVoices.find((v: SpeechSynthesisVoice) => 
           v.name.toLowerCase().includes(pattern.toLowerCase())
         ) || null
         if (foundVoice) {
           selectedVoice = foundVoice
-          console.log(`[Edge TTS] Selected preferred voice: ${selectedVoice.name}`)
+          console.log(`[Edge TTS] Selected preferred voice: ${selectedVoice!.name}`)
           break
         }
       }
@@ -438,32 +499,32 @@ export default function InvestorAccessPage() {
       // If no preferred pattern match, use any Microsoft voice for that language
       if (!selectedVoice && microsoftLangVoices.length > 0) {
         selectedVoice = microsoftLangVoices[0]
-        console.log(`[Edge TTS] Using first available Microsoft voice: ${selectedVoice.name}`)
+        console.log(`[Edge TTS] Using first available Microsoft voice: ${selectedVoice!.name}`)
       }
       
       // If no Microsoft voice for detected language, try any Microsoft English voice
       if (!selectedVoice && detectedLang !== 'en') {
         console.log(`[Edge TTS] No Microsoft voice for ${detectedLang}, trying English...`)
-        const englishMicrosoftVoices = allMicrosoftVoices.filter(v => v.lang.startsWith('en'))
+        const englishMicrosoftVoices = allMicrosoftVoices.filter((v: SpeechSynthesisVoice) => v.lang.startsWith('en'))
         if (englishMicrosoftVoices.length > 0) {
           selectedVoice = englishMicrosoftVoices[0]
-          console.log(`[Edge TTS] Using English Microsoft voice: ${selectedVoice.name}`)
+          console.log(`[Edge TTS] Using English Microsoft voice: ${selectedVoice!.name}`)
         }
       }
       
       // If still no Microsoft voice, use ANY Microsoft voice available
       if (!selectedVoice && allMicrosoftVoices.length > 0) {
         selectedVoice = allMicrosoftVoices[0]
-        console.log(`[Edge TTS] Using any available Microsoft voice: ${selectedVoice.name}`)
+        console.log(`[Edge TTS] Using any available Microsoft voice: ${selectedVoice!.name}`)
       }
       
       // If absolutely no Microsoft voice, try to find any high-quality voice for the language
       if (!selectedVoice) {
         console.log("[Edge TTS] No Microsoft voices found, searching for quality voices...")
-        const langVoices = voices.filter(v => v.lang.startsWith(detectedLang))
+        const langVoices = voices.filter((v: SpeechSynthesisVoice) => v.lang.startsWith(detectedLang))
         
         // Prefer voices with 'premium', 'enhanced', 'natural' in name
-        selectedVoice = langVoices.find(v => 
+        selectedVoice = langVoices.find((v: SpeechSynthesisVoice) => 
           v.name.toLowerCase().includes('premium') ||
           v.name.toLowerCase().includes('enhanced') ||
           v.name.toLowerCase().includes('natural')
@@ -477,7 +538,7 @@ export default function InvestorAccessPage() {
       // Final fallback to standard TTS if no suitable voice found
       if (!selectedVoice) {
         console.warn("[Edge TTS] No suitable voices found, falling back to standard browser TTS")
-        console.log("[Edge TTS] All available voices:", voices.slice(0, 10).map(v => `${v.name} (${v.lang})`).join(', '))
+        console.log("[Edge TTS] All available voices:", voices.slice(0, 10).map((v: SpeechSynthesisVoice) => `${v.name} (${v.lang})`).join(', '))
         fallbackToSpeechSynthesis(text)
         return
       }
@@ -494,6 +555,8 @@ export default function InvestorAccessPage() {
       utterance.onstart = () => {
         setIsSpeaking(true)
         startTalkingAnimation()
+        // Reset retry counter when speech starts successfully
+        ttsRetryCountRef.current = 0
       }
 
       utterance.onend = () => {
@@ -681,6 +744,13 @@ export default function InvestorAccessPage() {
   }
 
   const fallbackToSpeechSynthesis = (text: string) => {
+    // Check circuit breaker - max 2 retries per session
+    if (ttsRetryCountRef.current >= 2) {
+      console.log('[Fallback TTS] Circuit breaker tripped, skipping request')
+      setIsSpeaking(false)
+      return
+    }
+    
     try {
       if (!text || text.trim().length === 0) {
         console.error("[Fallback TTS] Invalid text provided")
@@ -695,6 +765,10 @@ export default function InvestorAccessPage() {
       }
 
       console.log("[Fallback TTS] Using standard browser speech synthesis")
+      
+      // Update last attempt time and increment retry counter
+      lastTTSAttemptRef.current = Date.now()
+      ttsRetryCountRef.current++
       
       // Cancel any ongoing speech
       try {
@@ -729,6 +803,8 @@ export default function InvestorAccessPage() {
         console.log("[Fallback TTS] Speech started")
         setIsSpeaking(true)
         startTalkingAnimation()
+        // Reset retry counter when speech starts successfully
+        ttsRetryCountRef.current = 0
       }
       
       utterance.onend = () => {
@@ -785,6 +861,12 @@ export default function InvestorAccessPage() {
   }
 
   const sendToGroq = async (text: string) => {
+    // Prevent multiple simultaneous requests
+    if (isProcessing) {
+      console.log('[sendToGroq] Request already processing, skipping new request')
+      return
+    }
+    
     setIsProcessing(true)
     console.log("[Frontend] Sending message to /api/chat:", text)
     
@@ -813,6 +895,8 @@ export default function InvestorAccessPage() {
       const aiResponse = data?.response || "I'm sorry, I couldn't process that."
       console.log("[Frontend] AI Response received:", aiResponse.substring(0, 100) + "...")
       setResponse(aiResponse)
+      // Reset retry counter on successful response
+      ttsRetryCountRef.current = 0
       speakText(aiResponse)
     } catch (error) {
       console.error("[Frontend] Error calling AI:", error)
@@ -821,6 +905,7 @@ export default function InvestorAccessPage() {
           ? (error as Error).message
           : "Sorry, I encountered an error. Please try again."
       setResponse(errorMsg)
+      // Don't reset retry counter on error, let speakText handle it
       speakText(errorMsg)
     } finally {
       setIsProcessing(false)

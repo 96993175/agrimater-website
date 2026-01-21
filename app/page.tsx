@@ -300,9 +300,25 @@ function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 50)
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
+    let throttleTimer: NodeJS.Timeout | null = null;
+    
+    const handleScroll = () => {
+      if (throttleTimer) return;
+      
+      setIsScrolled(window.scrollY > 50);
+      
+      throttleTimer = setTimeout(() => {
+        throttleTimer = null;
+      }, 100); // Throttle to 100ms
+    };
+    
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (throttleTimer) {
+        clearTimeout(throttleTimer);
+      }
+    };
   }, [])
 
   return (
@@ -313,7 +329,7 @@ function Navbar() {
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${isScrolled ? "glass py-4" : "py-6"}`}
     >
       <nav className="container mx-auto px-6 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-3 group">
+        <Link href="/" prefetch={false} className="flex items-center gap-3 group">
           <motion.div
             whileHover={{ scale: 1.05, rotate: 5 }}
             className="w-12 h-12 rounded-2xl overflow-hidden"
@@ -337,10 +353,10 @@ function Navbar() {
         </div>
 
         <div className="hidden md:flex items-center gap-4">
-          <Link href="/login" className="text-gray-600 hover:text-gray-900 transition-colors font-medium">
+          <Link href="/login" prefetch={false} className="text-gray-600 hover:text-gray-900 transition-colors font-medium">
             Login
           </Link>
-          <Link href="/farmer-onboarding">
+          <Link href="/farmer-onboarding" prefetch={false}>
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -464,6 +480,7 @@ function Navbar() {
               >
                 <Link 
                   href="/login" 
+                  prefetch={false}
                   onClick={() => setMobileOpen(false)}
                   className="group block"
                 >
@@ -495,7 +512,7 @@ function Navbar() {
                 transition={{ delay: 0.6, duration: 0.5, type: "spring", stiffness: 200 }}
                 className="mt-4"
               >
-                <Link href="/farmer-onboarding" onClick={() => setMobileOpen(false)}>
+                <Link href="/farmer-onboarding" prefetch={false} onClick={() => setMobileOpen(false)}>
                   <motion.button 
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
@@ -804,7 +821,7 @@ function CTAButton({
   const iconFirst = iconPlacement === "left"
 
   return (
-    <Link href={href} prefetch={true}>
+    <Link href={href} prefetch={false}>
       <motion.button
         type="button"
         initial={{ scale: 1, opacity: 1 }}
@@ -977,38 +994,52 @@ function FeaturesSection({
   }, [animationState])
 
   useEffect(() => {
+    let throttleTimer: NodeJS.Timeout | null = null;
+    
     const handleScroll = () => {
-      const sourceEl = document.getElementById("features-animation-source")
-      const impactAnchor = document.getElementById("impact-animation-anchor")
-      if (!sourceEl || !impactAnchor) return
+      if (throttleTimer) return;
+      
+      // Schedule the actual scroll logic to run later
+      throttleTimer = setTimeout(() => {
+        throttleTimer = null;
+        
+        const sourceEl = document.getElementById("features-animation-source")
+        const impactAnchor = document.getElementById("impact-animation-anchor")
+        if (!sourceEl || !impactAnchor) return
 
-      const sourceRect = sourceEl.getBoundingClientRect()
-      const impactRect = impactAnchor.getBoundingClientRect()
-      let nextState: AnimationState = "default"
+        const sourceRect = sourceEl.getBoundingClientRect()
+        const impactRect = impactAnchor.getBoundingClientRect()
+        let nextState: AnimationState = "default"
 
-      if (impactRect.top <= window.innerHeight * 0.4) {
-        nextState = "anchored"
-      } else if (sourceRect.top <= window.innerHeight * 0.0) {
-        nextState = "floating"
-      }
+        if (impactRect.top <= window.innerHeight * 0.4) {
+          nextState = "anchored"
+        } else if (sourceRect.top <= window.innerHeight * 0.0) {
+          nextState = "floating"
+        }
 
-      const viewportHeight = window.innerHeight
-      const startOffset = getDocumentTop(sourceEl) - viewportHeight * 0.05
-      const endOffset = getDocumentTop(impactAnchor) - viewportHeight * 0.4
-      const range = endOffset - startOffset
-      const rawProgress = range <= 0 ? 1 : (window.scrollY - startOffset) / range
-      const acceleratedProgress = DELIVERY_PROGRESS_SPEEDUP <= 0 ? rawProgress : rawProgress / DELIVERY_PROGRESS_SPEEDUP
-      onProgressChange(clamp(acceleratedProgress))
+        const viewportHeight = window.innerHeight
+        const startOffset = getDocumentTop(sourceEl) - viewportHeight * 0.05
+        const endOffset = getDocumentTop(impactAnchor) - viewportHeight * 0.4
+        const range = endOffset - startOffset
+        const rawProgress = range <= 0 ? 1 : (window.scrollY - startOffset) / range
+        const acceleratedProgress = DELIVERY_PROGRESS_SPEEDUP <= 0 ? rawProgress : rawProgress / DELIVERY_PROGRESS_SPEEDUP
+        onProgressChange(clamp(acceleratedProgress))
 
-      if (nextState !== lastStateRef.current) {
-        lastStateRef.current = nextState
-        onAnimationStateChange(nextState)
-      }
-    }
+        if (nextState !== lastStateRef.current) {
+          lastStateRef.current = nextState
+          onAnimationStateChange(nextState)
+        }
+      }, 100); // Throttle to 100ms
+    };
 
     window.addEventListener("scroll", handleScroll, { passive: true })
     handleScroll()
-    return () => window.removeEventListener("scroll", handleScroll)
+    return () => {
+      window.removeEventListener("scroll", handleScroll)
+      if (throttleTimer) {
+        clearTimeout(throttleTimer);
+      }
+    };
   }, [onAnimationStateChange, onProgressChange])
 
   return (
@@ -1281,7 +1312,7 @@ function ImpactSection({ animationState }: { animationState: AnimationState }) {
               
               {/* Talk with AI Button */}
               <div className="mt-8 flex justify-center">
-                <Link href="/investor-access">
+                <Link href="/investor-access" prefetch={false}>
                   <motion.button
                     whileHover={{ 
                       scale: 1.02,
