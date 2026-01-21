@@ -26,6 +26,16 @@ export async function POST(request: Request) {
     const emailResult = await sendOTPEmail(email, otp, name)
 
     if (!emailResult.success) {
+      console.error('OTP sending failed:', emailResult.error);
+      
+      // If it's an email configuration issue, return a more appropriate response
+      if (emailResult.error?.includes('authorization grant') || emailResult.error?.includes('Email service is not configured')) {
+        return NextResponse.json(
+          { error: "Email service is temporarily unavailable. Please contact support." },
+          { status: 503 }
+        );
+      }
+      
       return NextResponse.json(
         { error: `Failed to send OTP: ${emailResult.error}` },
         { status: 500 }

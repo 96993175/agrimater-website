@@ -141,6 +141,10 @@ class GroqClient {
           
           // Don't retry on certain error codes
           if ((response as Response).status >= 400 && (response as Response).status < 500 && (response as Response).status !== 429) {
+            // Specifically handle 401 unauthorized errors
+            if ((response as Response).status === 401) {
+              throw new Error(`Unauthorized: Invalid API key. Please check your GROQ_API_KEY configuration. ${errorMessage}`);
+            }
             throw new Error(`Client error: ${errorMessage}`);
           }
           

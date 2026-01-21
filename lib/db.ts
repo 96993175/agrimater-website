@@ -3,8 +3,8 @@ import { MongoClient } from 'mongodb'
 
 import type { Contact, Farmer, Retailer, User, Conversation, ConversationMessage } from "./types"
 
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://om67156715_db_user:XMW6gKsdPzS49mVe@cluster0.xhatnbd.mongodb.net/?appName=Cluster0"
-const DB_NAME = "agrimater"
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://om67156715_db_user:XMW6gKsdPzS49mVe@cluster0.xhatnbd.mongodb.net/agrimater?retryWrites=true&w=majority&appName=Cluster0"
+const DB_NAME = process.env.MONGODB_DB_NAME || "agrimater"
 
 let cachedClient: MongoClient | null = null
 let cachedDb: any = null

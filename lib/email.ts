@@ -5,11 +5,17 @@ const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY
 const FROM_EMAIL = process.env.SENDGRID_FROM || 'no-reply@agrimater.com'
 
 if (SENDGRID_API_KEY) {
-  sgMail.setApiKey(SENDGRID_API_KEY)
+  try {
+    sgMail.setApiKey(SENDGRID_API_KEY)
+  } catch (error) {
+    console.error('Failed to initialize SendGrid:', error)
+  }
+} else {
+  console.warn('SENDGRID_API_KEY is not set - email functionality will be disabled')
 }
 
 export async function sendOTPEmail(email: string, otp: string, name?: string): Promise<{ success: boolean; error?: string }> {
-  // Development mode - just log OTP to console
+  // Development mode or missing API key - just log OTP to console
   if (!SENDGRID_API_KEY || process.env.NODE_ENV === 'development') {
     console.log('\n========================================')
     console.log('📧 OTP EMAIL (Development Mode)')
@@ -20,6 +26,12 @@ export async function sendOTPEmail(email: string, otp: string, name?: string): P
     console.log('Expires: 10 minutes')
     console.log('========================================\n')
     return { success: true }
+  }
+
+  // Check if SendGrid is properly initialized
+  if (!sgMail || !SENDGRID_API_KEY) {
+    console.error('SendGrid is not properly configured')
+    return { success: false, error: 'Email service is not configured' }
   }
 
   try {
