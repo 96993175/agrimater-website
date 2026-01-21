@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { groqFetch, cancelPendingRequests } from './networkGuard';
 
 interface GroqRequestOptions {
   model?: string;
@@ -110,7 +109,7 @@ class GroqClient {
         const timeoutMs = options.timeout || 30000;
         const timeoutId = setTimeout(() => abortController.abort(), timeoutMs);
 
-        const response = await groqFetch(this.baseUrl, {
+        const response = await fetch(this.baseUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -122,8 +121,8 @@ class GroqClient {
 
         clearTimeout(timeoutId);
 
-        if ((response as Response).ok) {
-          const data = await (response as Response).json();
+        if (response.ok) {
+          const data = await response.json();
           
           const aiResponse = data?.choices?.[0]?.message?.content;
           if (!aiResponse) {
@@ -136,13 +135,13 @@ class GroqClient {
             usage: data.usage || undefined,
           };
         } else {
-          const errorData = await (response as Response).json();
-          const errorMessage = errorData?.error?.message || `HTTP ${(response as Response).status}`;
+          const errorData = await response.json();
+          const errorMessage = errorData?.error?.message || `HTTP ${response.status}`;
           
           // Don't retry on certain error codes
-          if ((response as Response).status >= 400 && (response as Response).status < 500 && (response as Response).status !== 429) {
+          if (response.status >= 400 && response.status < 500 && response.status !== 429) {
             // Specifically handle 401 unauthorized errors
-            if ((response as Response).status === 401) {
+            if (response.status === 401) {
               throw new Error(`Unauthorized: Invalid API key. Please check your GROQ_API_KEY configuration. ${errorMessage}`);
             }
             throw new Error(`Client error: ${errorMessage}`);
