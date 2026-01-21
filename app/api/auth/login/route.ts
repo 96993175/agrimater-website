@@ -31,6 +31,14 @@ export async function POST(request: NextRequest) {
 
     // Check MongoDB for user account
     try {
+      // Validate environment variables
+      if (!process.env.MONGODB_URI) {
+        console.error('[/api/auth/login] MONGODB_URI is not set in environment');
+        return NextResponse.json({ 
+          error: "Authentication service is temporarily unavailable" 
+        }, { status: 503 })
+      }
+      
       const { db: database } = await db.connectToDatabase()
       const usersCollection = database.collection('users')
       

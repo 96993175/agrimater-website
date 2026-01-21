@@ -31,7 +31,7 @@ class GroqClient {
   constructor() {
     this.apiKey = process.env.GROQ_API_KEY || "";
     if (!this.apiKey) {
-      throw new Error("GROQ_API_KEY environment variable is required");
+      console.error("GROQ_API_KEY environment variable is missing");
     }
   }
 
@@ -98,6 +98,11 @@ class GroqClient {
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       try {
+        // Validate API key before making request
+        if (!this.apiKey) {
+          throw new Error("GROQ_API_KEY environment variable is not set");
+        }
+        
         // Create AbortController for request timeout
         const abortController = new AbortController();
         

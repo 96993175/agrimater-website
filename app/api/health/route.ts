@@ -1,22 +1,36 @@
-import { NextResponse } from "next/server"
+import { NextResponse } from "next/server";
 
 export async function GET() {
-  return NextResponse.json({
-    status: "ok",
-    timestamp: new Date().toISOString(),
-    env: {
-      hasGroqKey: !!process.env.GROQ_API_KEY,
-      groqModel: process.env.GROQ_MODEL || "llama-3.1-8b-instant",
-      hasMongoUri: !!process.env.MONGODB_URI,
-      hasSendgridKey: !!process.env.SENDGRID_API_KEY,
-    },
-    routes: {
-      chat: "/api/chat",
-      chatHealth: "/api/chat/health",
-      auth: "/api/auth/*",
-      contact: "/api/contact",
-      farmers: "/api/farmers/register",
-      retailers: "/api/retailers/register",
-    },
-  })
+  try {
+    // Check environment variables
+    const envChecks = {
+      MONGODB_URI: !!process.env.MONGODB_URI,
+      GROQ_API_KEY: !!process.env.GROQ_API_KEY,
+      NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET || !!process.env.JWT_SECRET,
+      SENDGRID_API_KEY: !!process.env.SENDGRID_API_KEY,
+    };
+
+    // Overall status
+    const isHealthy = Object.values(envChecks).every(check => check === true);
+
+    return NextResponse.json({
+      status: isHealthy ? "healthy" : "unhealthy",
+      timestamp: new Date().toISOString(),
+      checks: {
+        environmentVariables: envChecks,
+        overall: isHealthy
+      }
+    }, { 
+      status: isHealthy ? 200 : 503 
+    });
+  } catch (error) {
+    console.error("Health check error:", error);
+    return NextResponse.json({
+      status: "error",
+      timestamp: new Date().toISOString(),
+      error: "Health check failed"
+    }, { 
+      status: 500 
+    });
+  }
 }

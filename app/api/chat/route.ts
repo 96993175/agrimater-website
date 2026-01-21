@@ -19,6 +19,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Use the new Groq client which handles all the advanced features
+    console.log('[/api/chat] Calling Groq client with message length:', message.length);
+    
+    // Check if API key is available before making request
+    if (!process.env.GROQ_API_KEY) {
+      console.error('[/api/chat] GROQ_API_KEY is not set in environment');
+      return NextResponse.json({ error: "AI service is temporarily unavailable" }, { status: 503 });
+    }
+    
     const result = await groqClient.chatCompletionWithModelFallback(message, sessionId);
     const aiResponse = result.response;
     
